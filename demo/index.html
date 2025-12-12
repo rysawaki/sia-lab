@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>SIA v0.2 Interactive Lab</title>
@@ -21,14 +21,16 @@ button:hover{background:#555}
     position: absolute;
     bottom: 20px;
     left: 20px;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     padding: 10px 15px;
-    border-left: 4px solid #333;
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-left: 5px solid #333;
+    font-family: 'Consolas', 'Monaco', monospace; /* Tech font */
+    font-size: 0.85rem;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     pointer-events: none;
     transition: all 0.2s;
+    min-width: 250px;
 }
 </style>
 </head>
@@ -38,12 +40,12 @@ button:hover{background:#555}
 
 <div id="c-box">
     <canvas id="sCv" width="800" height="600"></canvas>
-    <div id="narrative-display">SIA SYSTEM: ONLINE</div>
+    <div id="narrative-display">SYSTEM: INITIALIZING...</div>
 </div>
 
 <div class="ctrl">
     <div class="grp"><label>Memory Strength</label><input type="range" id="p_m" min="0" max="5.0" step="0.1" value="0.5"><span id="v_m">0.5</span></div>
-    <div class="grp"><label>Anxiety Level</label><input type="range" id="p_a" min="0" max="1.0" step="0.05" value="0.5"><span id="v_a">0.5</span></div>
+    <div class="grp"><label>Anxiety (Alpha)</label><input type="range" id="p_a" min="0" max="1.0" step="0.05" value="0.5"><span id="v_a">0.5</span></div>
     <div class="grp"><label>Neuroplasticity</label><input type="range" id="p_l" min="0" max="0.5" step="0.01" value="0.1"><span id="v_l">0.1</span></div>
     <div class="grp"><label>&nbsp;</label><button onclick="R()">RESET BRAIN</button></div>
 </div>
@@ -56,7 +58,7 @@ button:hover{background:#555}
 </div>
 
 <script>
-/* * SIA Engine v0.2 (With Narrative Module)
+/* * SIA Engine v0.2 (With Narrative Module - English Ver)
  * Copyright (c) 2025 RS5309. All Rights Reserved.
  */
 const _M={a:(a,b)=>a.map((v,i)=>v+b[i]),s:(a,b)=>a.map((v,i)=>v-b[i]),m:(v,s)=>v.map(x=>x*s),d:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),n:(v)=>Math.sqrt(v.reduce((s,x)=>s+x*x,0)),z:(v)=>{let n=Math.sqrt(v.reduce((s,x)=>s+x*x,0));return n<1e-8?v.map(()=>0):v.map(x=>x/n)}};
@@ -129,29 +131,29 @@ function DA(f,v,c,s=1){
   cx.fillStyle=c;cx.fill()
 }
 
-// Narrative Generator
+// --- English Narrative Generator ---
 function UpdateNarrative(data) {
     let txt = "SYSTEM: STANDBY";
     let style = "border-left-color: #333;";
     
     // State Logic
     if (data.ep > 0.6) {
-        txt = "⚠ DANGER: SHOCK PROXIMITY CRITICAL (回避行動)";
+        txt = "⚠ DANGER: SHOCK PROXIMITY (Evasive)";
         style = "border-left-color: red; color: red;";
     } else if (data.eg > 0.8) {
-        txt = "★ REWARD: GOAL REACHED (安定状態)";
+        txt = "★ REWARD: GOAL REACHED (Stable)";
         style = "border-left-color: blue; color: blue;";
     } else if (data.ep > 0.2 && data.im > 0.5) {
-        txt = "⚡ CONFLICT: 恐怖と意志の拮抗 (Struggle)";
+        txt = "⚡ CONFLICT: WILL vs FEAR (Struggle)";
         style = "border-left-color: orange; color: #d35400;";
     } else if (data.mem_mag > 0.8) {
-        txt = "∞ FLOW: 記憶による自動化 (Habitual)";
+        txt = "∞ FLOW: MEMORY DOMINANT (Habitual)";
         style = "border-left-color: purple; color: purple;";
     } else if (data.im > 0.1) {
-        txt = "➤ INTENT: 目標を探索中 (Seeking)";
+        txt = "➤ INTENT: SEEKING TARGET (Navigation)";
         style = "border-left-color: green; color: green;";
     } else {
-        txt = "zzz IDLE: 低エネルギー";
+        txt = "zzz IDLE: LOW ENERGY";
         style = "border-left-color: #999; color: #999;";
     }
     
