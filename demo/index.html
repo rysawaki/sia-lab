@@ -4,30 +4,62 @@
 <meta charset="UTF-8">
 <title>SIA v0.2 Interactive Lab</title>
 <style>
-body{font-family:sans-serif;background:#f0f0f0;display:flex;flex-direction:column;align-items:center}h1{margin:10px 0;font-size:1.2rem;color:#333}#c-box{position:relative;box-shadow:0 4px 6px rgba(0,0,0,0.1);background:#fff}canvas{display:block;cursor:crosshair}.ctrl{margin-top:10px;display:flex;gap:20px;background:#fff;padding:10px 20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.05)}.grp{display:flex;flex-direction:column}label{font-size:0.8rem;font-weight:bold;margin-bottom:4px;color:#555}.leg{margin-top:10px;font-size:0.85rem;color:#666}.dt{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}
+body{font-family:'Segoe UI', sans-serif;background:#f4f4f9;display:flex;flex-direction:column;align-items:center;color:#333}
+h1{margin:15px 0;font-size:1.5rem;letter-spacing:1px}
+#c-box{position:relative;box-shadow:0 10px 25px rgba(0,0,0,0.1);background:#fff;border-radius:4px;overflow:hidden}
+canvas{display:block;cursor:crosshair}
+.ctrl{margin-top:15px;display:flex;gap:25px;background:#fff;padding:15px 30px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.05)}
+.grp{display:flex;flex-direction:column}
+label{font-size:0.75rem;font-weight:bold;margin-bottom:6px;color:#888;text-transform:uppercase}
+input[type=range]{cursor:pointer}
+button{background:#333;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:bold}
+button:hover{background:#555}
+.leg{margin-top:15px;font-size:0.85rem;color:#666}
+.dt{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+/* Narrative Box Style */
+#narrative-display {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px 15px;
+    border-left: 4px solid #333;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    pointer-events: none;
+    transition: all 0.2s;
+}
 </style>
 </head>
 <body>
+
 <h1>SIA v0.2 "Universal" Dynamics Lab</h1>
-<div id="c-box"><canvas id="sCv" width="800" height="600"></canvas></div>
+
+<div id="c-box">
+    <canvas id="sCv" width="800" height="600"></canvas>
+    <div id="narrative-display">SIA SYSTEM: ONLINE</div>
+</div>
+
 <div class="ctrl">
-<div class="grp"><label>Memory (Exp)</label><input type="range" id="p_m" min="0" max="5.0" step="0.1" value="0.5"><span id="v_m">0.5</span></div>
-<div class="grp"><label>Anxiety (Alpha)</label><input type="range" id="p_a" min="0" max="1.0" step="0.05" value="0.5"><span id="v_a">0.5</span></div>
-<div class="grp"><label>Neuroplasticity (LR)</label><input type="range" id="p_l" min="0" max="0.5" step="0.01" value="0.1"><span id="v_l">0.1</span></div>
-<div class="grp"><button onclick="R()">Reset</button></div>
+    <div class="grp"><label>Memory Strength</label><input type="range" id="p_m" min="0" max="5.0" step="0.1" value="0.5"><span id="v_m">0.5</span></div>
+    <div class="grp"><label>Anxiety Level</label><input type="range" id="p_a" min="0" max="1.0" step="0.05" value="0.5"><span id="v_a">0.5</span></div>
+    <div class="grp"><label>Neuroplasticity</label><input type="range" id="p_l" min="0" max="0.5" step="0.01" value="0.1"><span id="v_l">0.1</span></div>
+    <div class="grp"><label>&nbsp;</label><button onclick="R()">RESET BRAIN</button></div>
 </div>
+
 <div class="leg">
-<span class="dt" style="background:blue;"></span>Goal &nbsp;<span class="dt" style="background:orange;"></span>Shock &nbsp;<span class="dt" style="background:black;"></span>Self &nbsp;|&nbsp; Vec: <span style="color:green;font-weight:bold;">Intent</span>, <span style="color:purple;font-weight:bold;">Memory</span>
+    <span class="dt" style="background:blue;"></span>Goal &nbsp;
+    <span class="dt" style="background:orange;"></span>Shock &nbsp;
+    <span class="dt" style="background:black;"></span>Self &nbsp;|&nbsp; 
+    Vectors: <span style="color:green;font-weight:bold;">Intent (Will)</span>, <span style="color:purple;font-weight:bold;">Memory (Habit)</span>
 </div>
+
 <script>
-/* * SIA Engine v0.2 (Obfuscated Build - Patched)
+/* * SIA Engine v0.2 (With Narrative Module)
  * Copyright (c) 2025 RS5309. All Rights Reserved.
- * Academic Demonstration Only.
  */
-// Math Utils
 const _M={a:(a,b)=>a.map((v,i)=>v+b[i]),s:(a,b)=>a.map((v,i)=>v-b[i]),m:(v,s)=>v.map(x=>x*s),d:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),n:(v)=>Math.sqrt(v.reduce((s,x)=>s+x*x,0)),z:(v)=>{let n=Math.sqrt(v.reduce((s,x)=>s+x*x,0));return n<1e-8?v.map(()=>0):v.map(x=>x/n)}};
-// Config (Short keys)
-// em (eta_mem) を 1.5 -> 0.5 に変更
 const _C={t:0.05,g:[1.2,0.2],s:[0.2,-0.5],sg:0.35,sp:0.3,ah:0.5,eg:0.6,ep:0.4,ei:0.8,em:0.5,gm:0.1,kd:4.0,wg:1,wp:1.3,cw:0.7,ww:0.4,km:1,am:1.2,lr:0.1,dr:0.005,ml:1.5,e:1e-8};
 
 class _T{
@@ -66,7 +98,6 @@ class _A{
     let dr=_M.a(_M.a(bs,_M.m(av,-0.4)),_M.m(bs,0.3*mb)),dh=_M.z(dr),it=_M.m(dh,im);
     this.y=_M.a(_M.m(this.y,1-_C.gm),_M.m(it,_C.gm));
     
-    // Calculate Forces
     let v_pot=_M.m(gv,-_C.ep);
     let v_int=_M.m(this.y,_C.ei);
     let v_mem=_M.m(pd,_C.em);
@@ -76,11 +107,13 @@ class _A{
     if(_M.n(dt)>_C.e)this.w.ip(xp,_M.m(dt,1/_C.t),ctx);
     this.tr.push([...this.x]);if(this.tr.length>300)this.tr.shift();
     
-    return {i:v_int, m:v_mem, p:v_pot}
+    // Return Narrative Data
+    return {i:v_int, m:v_mem, p:v_pot, eg:Eg, ep:Ep, im:im, mem_mag:_M.n(v_mem)}
   }
 }
 
 const cv=document.getElementById('sCv'),cx=cv.getContext('2d'),ag=new _A(),SC=150,OX=400,OY=300;
+const nBox=document.getElementById('narrative-display');
 function TS(v){return[OX+v[0]*SC,OY-v[1]*SC]}
 function FS(x,y){return[(x-OX)/SC,-(y-OY)/SC]}
 let dr=null;
@@ -90,26 +123,60 @@ function DA(f,v,c,s=1){
   cx.beginPath();cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1]);
   cx.strokeStyle=c;cx.lineWidth=2;cx.stroke();
   let a=Math.atan2(p2[1]-p1[1],p2[0]-p1[0]);
-  cx.beginPath();
-  cx.moveTo(p2[0],p2[1]);
+  cx.beginPath();cx.moveTo(p2[0],p2[1]);
   cx.lineTo(p2[0]-10*Math.cos(a-Math.PI/6),p2[1]-10*Math.sin(a-Math.PI/6));
   cx.lineTo(p2[0]-10*Math.cos(a+Math.PI/6),p2[1]-10*Math.sin(a+Math.PI/6));
   cx.fillStyle=c;cx.fill()
 }
 
+// Narrative Generator
+function UpdateNarrative(data) {
+    let txt = "SYSTEM: STANDBY";
+    let style = "border-left-color: #333;";
+    
+    // State Logic
+    if (data.ep > 0.6) {
+        txt = "⚠ DANGER: SHOCK PROXIMITY CRITICAL (回避行動)";
+        style = "border-left-color: red; color: red;";
+    } else if (data.eg > 0.8) {
+        txt = "★ REWARD: GOAL REACHED (安定状態)";
+        style = "border-left-color: blue; color: blue;";
+    } else if (data.ep > 0.2 && data.im > 0.5) {
+        txt = "⚡ CONFLICT: 恐怖と意志の拮抗 (Struggle)";
+        style = "border-left-color: orange; color: #d35400;";
+    } else if (data.mem_mag > 0.8) {
+        txt = "∞ FLOW: 記憶による自動化 (Habitual)";
+        style = "border-left-color: purple; color: purple;";
+    } else if (data.im > 0.1) {
+        txt = "➤ INTENT: 目標を探索中 (Seeking)";
+        style = "border-left-color: green; color: green;";
+    } else {
+        txt = "zzz IDLE: 低エネルギー";
+        style = "border-left-color: #999; color: #999;";
+    }
+    
+    nBox.innerHTML = txt;
+    nBox.style = style;
+}
+
 function L(){
   let f=ag.up();
+  UpdateNarrative(f); // Update Text
+  
   cx.clearRect(0,0,800,600);
-  cx.strokeStyle='#e0e0e0';cx.lineWidth=1;cx.beginPath();
+  cx.strokeStyle='#f0f0f0';cx.lineWidth=1;
+  // Subtle Grid
+  cx.beginPath();
   for(let i=-5;i<=5;i++){let p1=TS([i,-5]),p2=TS([i,5]);cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1]);p1=TS([-5,i]);p2=TS([5,i]);cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1])}cx.stroke();
-  if(ag.tr.length>1){cx.beginPath();cx.strokeStyle='rgba(0,0,0,0.3)';cx.lineWidth=2;let s=TS(ag.tr[0]);cx.moveTo(s[0],s[1]);for(let i=1;i<ag.tr.length;i++){let p=TS(ag.tr[i]);cx.lineTo(p[0],p[1])}cx.stroke()}
-  let pg=TS(_C.g);cx.fillStyle='blue';cx.beginPath();cx.arc(pg[0],pg[1],8,0,6.28);cx.fill();cx.fillStyle='white';cx.fillText('G',pg[0]-4,pg[1]+4);
-  let ps=TS(_C.s);cx.fillStyle='orange';cx.beginPath();cx.arc(ps[0],ps[1],8,0,6.28);cx.fill();cx.fillStyle='white';cx.fillText('S',ps[0]-4,ps[1]+4);
+  
+  if(ag.tr.length>1){cx.beginPath();cx.strokeStyle='rgba(0,0,0,0.2)';cx.lineWidth=3;let s=TS(ag.tr[0]);cx.moveTo(s[0],s[1]);for(let i=1;i<ag.tr.length;i++){let p=TS(ag.tr[i]);cx.lineTo(p[0],p[1])}cx.stroke()}
+  
+  let pg=TS(_C.g);cx.fillStyle='blue';cx.beginPath();cx.arc(pg[0],pg[1],8,0,6.28);cx.fill();
+  let ps=TS(_C.s);cx.fillStyle='orange';cx.beginPath();cx.arc(ps[0],ps[1],8,0,6.28);cx.fill();
   let ph=TS(ag.x);cx.fillStyle='black';cx.beginPath();cx.arc(ph[0],ph[1],6,0,6.28);cx.fill();
   
   DA(ag.x, f.i, 'green', 20);
   DA(ag.x, f.m, 'purple', 20);
-  
   requestAnimationFrame(L)
 }
 
