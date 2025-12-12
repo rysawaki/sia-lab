@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SIA Self-Field Visualization</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #222; color: #eee; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
+  h1 { margin: 10px 0 20px; font-weight: 300; letter-spacing: 1px; }
+  #canvas-container {
+    position: relative;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #000;
+  }
+  canvas { display: block; cursor: crosshair; }
+  .controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    background: #333;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background: #555;
+    color: #eee;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  button:hover { background: #666; }
+  button.active { background: #00aaff; color: #fff; }
+  .legend { margin-top: 10px; font-size: 0.9rem; color: #aaa; display: flex; gap: 15px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+</style>
+</head>
+<body>
+
+<h1>SIA Self-Field Visualization</h1>
+
+<div id="canvas-container">
+  <canvas id="mainCanvas" width="600" height="600"></canvas>
+</div>
+
+<div class="controls">
+  <button id="btn-pot" class="active" onclick="setMode('potential')">1. Potential Landscape</button>
+  <button id="btn-force" onclick="setMode('force')">2. Force Strength</button>
+  <button id="btn-trace" onclick="setMode('trace')">3. Trajectory & Contour</button>
+</div>
+
+<div class="legend">
+  <span><span class="dot" style="background:blue;"></span>Goal (Drag)</span>
+  <span><span class="dot" style="background:orange;"></span>Shock (Drag)</span>
+  <span id="trace-legend" style="display:none;"><span class="dot" style="background:red;"></span>SIA Trace</span>
+</div>
+
+<script>
+/* =========================================
+   SIA Logic Core (Minimal for Calculation)
+   ========================================= */
+const _M={a:(a,b)=>a.map((v,i)=>v+b[i]),s:(a,b)=>a.map((v,i)=>v-b[i]),m:(v,s)=>v.map(x=>x*s),d:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),n:(v)=>Math.sqrt(v.reduce((s,x)=>s+x*x,0)),z:(v)=>{let n=Math.sqrt(v.reduce((s,x)=>s+x*x,0));return n<1e-8?v.map(()=>0):v.map(x=>x/n)}};
+let _C={t:0.05,g:[1.2,0.2],s:[0.2,-0.5],sg:0.35,sp:0.3,ah:0.5,eg:0.6,ep:0.4,ei:0.8,em:0.5,gm:0.1,kd:4.0,wg:1,wp:1.3,cw:0.7,ww:0.4,km:1,am:1.2,lr:0.1,dr:0.005,ml:1.5,e:1e-8};
+
+// Potential Function
+function getPotential(p) {
+  // 1. Homeostasis
+  let V_self = 0.5 * _C.ah * _M.d(p, p);
+  // 2. Goal (Valley)
+  let dg = _M.s(p, _C.g);
+  let Eg = Math.exp(-_M.d(dg,dg)/(2*_C.sg**2));
+  let V_goal = -_C.eg * Eg;
+  // 3. Shock (Hill - fake potential for viz)
+  let ds = _M.s(p, _C.s);
+  let Ep = Math.exp(-_M.d(ds,ds)/(2*_C.sp**2));
+  let V_shock = 0.8 * Ep;
+  return V_self + V_goal + V_shock;
+}
+
+// Force Magnitude Function (Numerical Gradient)
+function getForceMag(p) {
+  const eps = 1e-3;
+  let Vc = getPotential(p);
+  let Vdx = getPotential([p[0]+eps, p[1]]);
+  let Vdy = getPotential([p[0], p[1]+eps]);
+  let Fx = -(Vdx - Vc)/eps;
+  let Fy = -(Vdy - Vc)/eps;
+  return Math.sqrt(Fx*Fx + Fy*Fy);
+}
+
+// Simulation for Trace
+function runSimulation() {
+  let h = [0,0], y=[0,0], z=[0,0], trace=[];
+  // Simple Memory (not learning in this viz for stability)
+  let T = [[[0,0],[0,0]],[[0,0],[0,0]]]; 
+
+  for(let i=0; i<400; i++) {
+    let dg=_M.s(h,_C.g), dp=_M.s(h,_C.s);
+    let Eg=Math.exp(-_M.d(dg,dg)/(2*_C.sg**2)), Ep=Math.exp(-_M.d(dp,dp)/(2*_C.sp**2));
+    
+    // Potential Force
+    const eps = 1e-4; Vc=getPotential(h);
+    let Fx=-(getPotential([h[0]+eps, h[1]])-Vc)/eps;
+    let Fy=-(getPotential([h[0], h[1]+eps])-Vc)/eps;
+    let Fpot = [Fx, Fy];
+    
+    // Intent
+    let diff=Eg-Ep, dm=_M.m(_M.s(_M.m([diff,-diff],_C.am),_M.m(z,_C.km)),_C.t); z=_M.a(z,dm);
+    let En=_C.wg*Eg-_C.wp*Ep+_C.ww*_C.cw, im=1/(1+Math.exp(-_C.kd*En));
+    let bs=_M.s(_C.g,h), av=_M.s(h,_C.s), mb=Math.tanh(z[0]-z[1]);
+    let dr=_M.a(_M.a(bs,_M.m(av,-0.4)),_M.m(bs,0.3*mb)), dh_int=_M.z(dr), it=_M.m(dh_int,im);
+    y=_M.a(_M.m(y,1-_C.gm),_M.m(it,_C.gm));
+
+    // Memory (Simple Prediction)
+    let ctx=z.map(v=>1/(1+Math.exp(-2*v)));
+    let nh=_M.n(h), hi=nh>1e-8?_M.m(h,1/nh):h, o=[0,0];
+    for(let k=0;k<2;k++) o=_M.a(o, _M.m([T[k][0][0]*hi[0]+T[k][0][1]*hi[1], T[k][1][0]*hi[0]+T[k][1][1]*hi[1]], ctx[k]));
+    let mg=_M.n(o), Fmem=mg>1e-8?_M.m(o,_C.ml*Math.tanh(mg)/mg):o;
+
+    // Total Force & Move
+    let Ftotal = _M.a(_M.m(Fpot,_C.eta_pot), _M.a(_M.m(y,_C.ei), _M.m(Fmem,_C.em)));
+    h = _M.a(h, _M.m(Ftotal, _C.t));
+    trace.push([...h]);
+    if(_M.n(_M.s(h, _C.g)) < 0.1) break; // Reached goal
+  }
+  return trace;
+}
+
+/* =========================================
+   Visualization & UI
+   ========================================= */
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+const W=canvas.width, H=canvas.height;
+const SC=150, OX=W/2, OY=H/2;
+function TS(v){return[OX+v[0]*SC,OY-v[1]*SC]}
+function FS(x,y){return[(x-OX)/SC,-(y-OY)/SC]}
+
+let currentMode = 'potential';
+let dragging = null;
+let fieldCache = null;
+let traceCache = null;
+let needsUpdate = true;
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+  document.getElementById(`btn-${mode==='potential'?'pot':mode==='force'?'force':'trace'}`).classList.add('active');
+  document.getElementById('trace-legend').style.display = mode === 'trace' ? 'inline' : 'none';
+  draw();
+}
+
+// Colormaps
+function colormapRdBu(t) { // t: 0(Blue) -> 0.5(White) -> 1(Red)
+  t = Math.max(0, Math.min(1, t));
+  if(t<0.5) return `rgb(${Math.floor(t*2*255)},${Math.floor(t*2*255)},255)`;
+  else return `rgb(255,${Math.floor((1-(t-0.5)*2)*255)},${Math.floor((1-(t-0.5)*2)*255)})`;
+}
+function colormapInferno(t) { // t: 0(Black) -> 1(Yellow)
+  t = Math.max(0, Math.min(1, t));
+  return `hsl(${t*60}, 100%, ${t*50}%)`; // Simplified heatmap
+}
+
+function precomputeField() {
+  const res = 4; // Resolution for field rendering
+  const cols = W/res, rows = H/res;
+  const potData=[], forceData=[];
+  let minP=Infinity, maxP=-Infinity, minF=Infinity, maxF=-Infinity;
+  
+  for(let j=0; j<rows; j++) {
+    for(let i=0; i<cols; i++) {
+      let p = FS(i*res+res/2, j*res+res/2);
+      let pot = getPotential(p); potData.push(pot);
+      let force = getForceMag(p); forceData.push(force);
+      minP=Math.min(minP,pot); maxP=Math.max(maxP,pot);
+      minF=Math.min(minF,force); maxF=Math.max(maxF,force);
+    }
+  }
+  return {res, cols, rows, potData, forceData, minP, maxP, minF, maxF};
+}
+
+function drawField(type) {
+  if(needsUpdate) { fieldCache = precomputeField(); traceCache = runSimulation(); needsUpdate=false; }
+  const f = fieldCache;
+  for(let j=0; j<f.rows; j++) {
+    for(let i=0; i<f.cols; i++) {
+      let val, col;
+      if(type==='potential') {
+        val = f.potData[j*f.cols+i];
+        // Normalize around 0 for RdBu: val < 0 (Valley) -> Blue, val > 0 (Hill) -> Red
+        // Adjust range manually for better viz
+        let norm = (val - (-0.5)) / (0.8 - (-0.5)); 
+        col = colormapRdBu(norm);
+      } else {
+        val = f.forceData[j*f.cols+i];
+        col = colormapInferno(val / 2.5); // Normalize magnitude
+      }
+      ctx.fillStyle = col;
+      ctx.fillRect(i*f.res, j*f.res, f.res, f.res);
+    }
+  }
+}
+
+function drawContour() {
+  // Simplified contour viz using thresholding on precomputed field could be done,
+  // but drawing raw field is clearer for this demo.
+  // Instead, just draw field and trace on top.
+  drawField('potential');
+}
+
+function drawTrace() {
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255, 50, 50, 0.8)';
+  ctx.lineWidth = 3;
+  let start = TS([0,0]); ctx.moveTo(start[0], start[1]);
+  traceCache.forEach(p_world => {
+    let p = TS(p_world);
+    ctx.lineTo(p[0], p[1]);
+  });
+  ctx.stroke();
+  // Start point
+  ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(start[0],start[1],5,0,6.28); ctx.fill();
+}
+
+function drawObjects() {
+  let pg = TS(_C.g), ps = TS(_C.s);
+  ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(pg[0], pg[1], 8, 0, 6.28); ctx.fill();
+  ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle = 'orange'; ctx.beginPath(); ctx.arc(ps[0], ps[1], 8, 0, 6.28); ctx.fill();
+  ctx.stroke();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  if(currentMode === 'potential') drawField('potential');
+  else if(currentMode === 'force') drawField('force');
+  else if(currentMode === 'trace') { drawContour(); drawTrace(); }
+  drawObjects();
+}
+
+// Interaction
+canvas.addEventListener('mousedown', e => {
+  let r=canvas.getBoundingClientRect(), p=FS(e.clientX-r.left,e.clientY-r.top);
+  if(_M.n(_M.s(p,_C.g))<0.2) dragging='g';
+  else if(_M.n(_M.s(p,_C.s))<0.2) dragging='s';
+});
+canvas.addEventListener('mousemove', e => {
+  if(!dragging) return;
+  let r=canvas.getBoundingClientRect(), p=FS(e.clientX-r.left,e.clientY-r.top);
+  if(dragging==='g') _C.g=p; if(dragging==='s') _C.s=p;
+  needsUpdate = true; draw();
+});
+canvas.addEventListener('mouseup', () => dragging=null);
+
+// Init
+draw();
+</script>
+</body>
+</html>
