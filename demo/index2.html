@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SIA Dual-View: Narrative & Vectors</title>
+<style>
+  body { font-family: 'Segoe UI', monospace; background: #121212; color: #ccc; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
+  h1 { margin: 10px 0 5px; font-weight: 300; letter-spacing: 2px; color: #00d4ff; }
+  .subtitle { font-size: 0.9rem; color: #777; margin-bottom: 20px; }
+  
+  #container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  
+  .panel { position: relative; border: 1px solid #333; border-radius: 4px; overflow: hidden; background: #000; }
+  canvas { display: block; cursor: crosshair; }
+  
+  .label {
+    position: absolute; top: 10px; left: 10px; padding: 4px 8px;
+    font-size: 0.8rem; color: #fff; background: rgba(0,0,0,0.7);
+    border-left: 3px solid; pointer-events: none;
+  }
+  .lbl-world { border-color: #888; }
+  .lbl-mind { border-color: #00d4ff; }
+
+  /* Narrative Box Style */
+  .narrative-box {
+    position: absolute; bottom: 10px; left: 10px; right: 10px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.85);
+    border-left: 4px solid #555;
+    font-family: 'Consolas', monospace;
+    font-size: 0.9rem;
+    color: #eee;
+    pointer-events: none;
+    transition: border-color 0.2s;
+  }
+
+  .controls { margin-top: 20px; display: flex; gap: 15px; background: #1e1e24; padding: 15px; border-radius: 8px; }
+  button { padding: 8px 16px; background: #333; color: #ddd; border: 1px solid #444; cursor: pointer; border-radius: 4px; }
+  button:hover { background: #444; color: #fff; }
+  
+  .legend { margin-top: 10px; font-size: 0.9rem; display: flex; gap: 20px; }
+  .vec-label { font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>SIA: DUAL REALITY</h1>
+<div class="subtitle">World (Events) vs Mind (Meaning + Narrative)</div>
+
+<div id="container">
+  <div class="panel">
+    <div class="label lbl-world">WORLD (Reality)</div>
+    <canvas id="cvWorld" width="400" height="400"></canvas>
+  </div>
+
+  <div class="panel">
+    <div class="label lbl-mind">MIND (Internal Map)</div>
+    <canvas id="cvMind" width="400" height="400"></canvas>
+    <div id="narrativeDisplay" class="narrative-box">SYSTEM: ONLINE</div>
+  </div>
+</div>
+
+<div class="legend">
+  <span class="vec-label" style="color:#00ff00">➤ Intent (Green)</span>
+  <span class="vec-label" style="color:#d000ff">➤ Memory (Purple)</span>
+</div>
+
+<div class="controls">
+  <button onclick="agent.resetMemory()">Reset Memory</button>
+  <button onclick="togglePause()">Pause / Resume</button>
+</div>
+
+<script>
+/* =========================================================
+   1. THE WORLD (Environment)
+   ========================================================= */
+const DT = 0.05;
+
+class World {
+  constructor() {
+    this.agentPos = [0, 0];
+    this.goalPos = [1.2, 0.5];
+    this.shockPos = [0.2, -0.5];
+    this.shockRadius = 0.3;
+    this.goalRadius = 0.15;
+  }
+
+  step(velocity) {
+    this.agentPos[0] += velocity[0] * DT;
+    this.agentPos[1] += velocity[1] * DT;
+
+    const lim = 1.95;
+    this.agentPos[0] = Math.max(-lim, Math.min(lim, this.agentPos[0]));
+    this.agentPos[1] = Math.max(-lim, Math.min(lim, this.agentPos[1]));
+
+    let shock = 0;
+    if (Math.hypot(this.agentPos[0]-this.shockPos[0], this.agentPos[1]-this.shockPos[1]) < this.shockRadius) {
+      shock = 1;
+    }
+    return { pos: [...this.agentPos], shock };
+  }
+}
+
+/* =========================================================
+   2. THE MIND (Agent)
+   ========================================================= */
+const GRID = 64; 
+
+class AgentMind {
+  constructor() {
+    this.trace = new Float32Array(GRID * GRID);
+    this.imprint = new Float32Array(GRID * GRID);
+    this.decayT = 0.005; 
+    this.decayS = 0.001; 
+    this.lrS = 0.5;      
+  }
+
+  toGrid(x, y) {
+    let gx = Math.floor((x + 2.0) / 4.0 * GRID);
+    let gy = Math.floor((-y + 2.0) / 4.0 * GRID); 
+    return { 
+      x: Math.max(0, Math.min(GRID-1, gx)), 
+      y: Math.max(0, Math.min(GRID-1, gy)) 
+    };
+  }
+
+  update(pos, events) {
+    const p = this.toGrid(pos[0], pos[1]);
+    this.paint(this.trace, p.x, p.y, 0.2, 1);
+
+    if (events.shock > 0) {
+      this.paint(this.imprint, p.x, p.y, this.lrS, 4); 
+    }
+
+    for(let i=0; i<this.trace.length; i++) {
+      this.trace[i] *= (1 - this.decayT);
+      this.imprint[i] *= (1 - this.decayS);
+    }
+  }
+
+  paint(map, cx, cy, amount, radius) {
+    const r2 = radius*radius;
+    for(let y=cy-radius; y<=cy+radius; y++) {
+      for(let x=cx-radius; x<=cx+radius; x++) {
+        if(x>=0 && x<GRID && y>=0 && y<GRID) {
+          const d2 = (x-cx)**2 + (y-cy)**2;
+          if(d2 <= r2) {
+            map[y*GRID+x] = Math.min(1.0, map[y*GRID+x] + amount * Math.exp(-d2/2));
+          }
+        }
+      }
+    }
+  }
+
+  decideAction(pos, innateGoalVec) {
+    const p = this.toGrid(pos[0], pos[1]);
+    
+    // Memory Force (Repulsion from Imprint)
+    const getS = (x,y) => this.imprint[y*GRID+x];
+    const xL = Math.max(0, p.x-1), xR = Math.min(GRID-1, p.x+1);
+    const yU = Math.max(0, p.y-1), yD = Math.min(GRID-1, p.y+1); 
+    
+    const dS_dx = (getS(xR, p.y) - getS(xL, p.y)) * 0.5;
+    const dS_dy = (getS(p.x, yD) - getS(p.x, yU)) * 0.5;
+
+    let memX = -dS_dx * 2.0; // Weakened repulsion
+    let memY = dS_dy * 2.0; 
+
+    // Intent Force
+    let intX = innateGoalVec[0] * 0.3; // Weakened goal drive
+    let intY = innateGoalVec[1] * 0.3;
+
+    // Noise
+    let noiseX = (Math.random()-0.5) * 0.8;
+    let noiseY = (Math.random()-0.5) * 0.8;
+
+    return {
+      vel: [intX + memX + noiseX, intY + memY + noiseY],
+      vecIntent: [intX, intY],
+      vecMemory: [memX, memY]
+    };
+  }
+
+  // --- NARRATIVE GENERATION ---
+  getNarrativeState(pos, vecIntent, vecMemory) {
+    const p = this.toGrid(pos[0], pos[1]);
+    const idx = p.y * GRID + p.x;
+    
+    const painLevel = this.imprint[idx];
+    const traceLevel = this.trace[idx];
+    
+    // Dot product to check conflict (Intent vs Memory)
+    // Normalize first roughly
+    const lenI = Math.hypot(vecIntent[0], vecIntent[1]) + 0.001;
+    const lenM = Math.hypot(vecMemory[0], vecMemory[1]) + 0.001;
+    const dot = (vecIntent[0]*vecMemory[0] + vecIntent[1]*vecMemory[1]) / (lenI * lenM);
+
+    let text = "SYSTEM: SEARCHING...";
+    let color = "#aaa";
+    let border = "#555";
+
+    if (painLevel > 0.4) {
+      text = "⚠ DANGER DETECTED (Pain)";
+      color = "#ff5555"; border = "#ff0000";
+    } else if (painLevel > 0.1 && lenM > 0.1 && dot < -0.5) {
+      text = "⚡ CONFLICT: WILL vs FEAR"; // 意志と記憶が逆方向
+      color = "#ffaa00"; border = "#ff8800";
+    } else if (traceLevel > 0.6) {
+      text = "∞ FLOW STATE (Habitual)";
+      color = "#d000ff"; border = "#aa00ff";
+    } else if (lenI > 0.1) {
+      text = "➤ INTENT: SEEKING GOAL";
+      color = "#00ff00"; border = "#00ff00";
+    }
+
+    return { text, color, border };
+  }
+
+  resetMemory() {
+    this.trace.fill(0);
+    this.imprint.fill(0);
+  }
+}
+
+/* =========================================================
+   VISUALIZATION & MAIN LOOP
+   ========================================================= */
+const cvW = document.getElementById('cvWorld');
+const ctxW = cvW.getContext('2d');
+const cvM = document.getElementById('cvMind');
+const ctxM = cvM.getContext('2d');
+const narrativeEl = document.getElementById('narrativeDisplay');
+
+const world = new World();
+const agent = new AgentMind();
+let paused = false;
+let lastDecision = { vel:[0,0], vecIntent:[0,0], vecMemory:[0,0] };
+
+const toScr = (x, y) => [(x+2)/4*400, (-y+2)/4*400];
+const fromScr = (x, y) => [x/400*4-2, -(y/400*4-2)];
+
+function loop() {
+  if(!paused) {
+    const dx = world.goalPos[0] - world.agentPos[0];
+    const dy = world.goalPos[1] - world.agentPos[1];
+    const d = Math.hypot(dx, dy);
+    const gVec = d>0 ? [dx/d, dy/d] : [0,0];
+
+    lastDecision = agent.decideAction(world.agentPos, gVec);
+    const state = world.step(lastDecision.vel);
+    agent.update(state.pos, state);
+    
+    // Update Narrative
+    const nar = agent.getNarrativeState(world.agentPos, lastDecision.vecIntent, lastDecision.vecMemory);
+    narrativeEl.innerText = nar.text;
+    narrativeEl.style.color = nar.color;
+    narrativeEl.style.borderLeftColor = nar.border;
+  }
+  
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function drawArrow(ctx, x, y, vx, vy, color, scale=60) {
+  if(Math.abs(vx)<0.01 && Math.abs(vy)<0.01) return;
+  const tox = x + vx * scale;
+  const toy = y - vy * scale; 
+  
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(tox, toy);
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+
+  const angle = Math.atan2(toy-y, tox-x);
+  const headLen = 6;
+  ctx.beginPath();
+  ctx.moveTo(tox, toy);
+  ctx.lineTo(tox - headLen * Math.cos(angle - Math.PI / 6), toy - headLen * Math.sin(angle - Math.PI / 6));
+  ctx.lineTo(tox - headLen * Math.cos(angle + Math.PI / 6), toy - headLen * Math.sin(angle + Math.PI / 6));
+  ctx.fillStyle = color; ctx.fill();
+}
+
+function getColor(t, s) {
+  let r=0, g=Math.floor(t*150), b=Math.floor(t*255);
+  if(s > 0.01) {
+    const intensity = Math.min(1, s * 2);
+    r = Math.floor(255 * intensity);
+    g = Math.floor(g * (1-intensity) + 200 * intensity);
+    b = Math.floor(b * (1-intensity));
+  }
+  return [r, g, b, 255];
+}
+
+function draw() {
+  // --- Draw WORLD ---
+  ctxW.fillStyle = '#111'; ctxW.fillRect(0,0,400,400);
+  ctxW.strokeStyle='#222'; ctxW.beginPath();
+  for(let i=0;i<=400;i+=50){ ctxW.moveTo(i,0);ctxW.lineTo(i,400);ctxW.moveTo(0,i);ctxW.lineTo(400,i); }
+  ctxW.stroke();
+  
+  const [gx, gy] = toScr(...world.goalPos);
+  ctxW.fillStyle = '#4477aa'; ctxW.beginPath(); ctxW.arc(gx, gy, 10, 0, 6.28); ctxW.fill();
+  const [sx, sy] = toScr(...world.shockPos);
+  ctxW.fillStyle = '#cc9944'; ctxW.beginPath(); ctxW.arc(sx, sy, 10, 0, 6.28); ctxW.fill();
+  
+  const [ax, ay] = toScr(...world.agentPos);
+  ctxW.fillStyle = '#fff'; ctxW.beginPath(); ctxW.arc(ax, ay, 5, 0, 6.28); ctxW.fill();
+
+  // --- Draw MIND ---
+  const img = ctxM.createImageData(GRID, GRID);
+  for(let i=0; i<GRID*GRID; i++) {
+    const col = getColor(agent.trace[i], agent.imprint[i]);
+    img.data[i*4+0] = col[0]; img.data[i*4+1] = col[1]; img.data[i*4+2] = col[2]; img.data[i*4+3] = 255;
+  }
+  const tmp = document.createElement('canvas'); tmp.width=GRID; tmp.height=GRID;
+  tmp.getContext('2d').putImageData(img, 0, 0);
+  ctxM.imageSmoothingEnabled = false;
+  ctxM.drawImage(tmp, 0, 0, 400, 400);
+  
+  ctxM.strokeStyle = '#fff'; ctxM.lineWidth=2;
+  ctxM.beginPath(); ctxM.arc(ax, ay, 5, 0, 6.28); ctxM.stroke();
+
+  // Vectors
+  drawArrow(ctxM, ax, ay, lastDecision.vecIntent[0], lastDecision.vecIntent[1], '#00ff00', 80);
+  drawArrow(ctxM, ax, ay, lastDecision.vecMemory[0], lastDecision.vecMemory[1], '#d000ff', 80);
+}
+
+// Interaction
+let drag = null;
+cvW.addEventListener('mousedown', e=>{
+  const rect = cvW.getBoundingClientRect();
+  const [wx, wy] = fromScr(e.clientX-rect.left, e.clientY-rect.top);
+  if(Math.hypot(wx-world.goalPos[0], wy-world.goalPos[1])<0.3) drag='g';
+  else if(Math.hypot(wx-world.shockPos[0], wy-world.shockPos[1])<0.3) drag='s';
+});
+window.addEventListener('mousemove', e=>{
+  if(!drag) return;
+  const rect = cvW.getBoundingClientRect();
+  const [wx, wy] = fromScr(e.clientX-rect.left, e.clientY-rect.top);
+  if(drag==='g') world.goalPos=[wx, wy];
+  if(drag==='s') world.shockPos=[wx, wy];
+});
+window.addEventListener('mouseup', ()=>drag=null);
+
+function togglePause() { paused = !paused; }
+
+loop();
+</script>
+</body>
+</html>
