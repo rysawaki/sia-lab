@@ -11,7 +11,7 @@ body{font-family:sans-serif;background:#f0f0f0;display:flex;flex-direction:colum
 <h1>SIA v0.2 "Universal" Dynamics Lab</h1>
 <div id="c-box"><canvas id="sCv" width="800" height="600"></canvas></div>
 <div class="ctrl">
-<div class="grp"><label>Memory (Exp)</label><input type="range" id="p_m" min="0" max="5.0" step="0.1" value="1.5"><span id="v_m">1.5</span></div>
+<div class="grp"><label>Memory (Exp)</label><input type="range" id="p_m" min="0" max="5.0" step="0.1" value="0.5"><span id="v_m">0.5</span></div>
 <div class="grp"><label>Anxiety (Alpha)</label><input type="range" id="p_a" min="0" max="1.0" step="0.05" value="0.5"><span id="v_a">0.5</span></div>
 <div class="grp"><label>Neuroplasticity (LR)</label><input type="range" id="p_l" min="0" max="0.5" step="0.01" value="0.1"><span id="v_l">0.1</span></div>
 <div class="grp"><button onclick="R()">Reset</button></div>
@@ -27,7 +27,8 @@ body{font-family:sans-serif;background:#f0f0f0;display:flex;flex-direction:colum
 // Math Utils
 const _M={a:(a,b)=>a.map((v,i)=>v+b[i]),s:(a,b)=>a.map((v,i)=>v-b[i]),m:(v,s)=>v.map(x=>x*s),d:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),n:(v)=>Math.sqrt(v.reduce((s,x)=>s+x*x,0)),z:(v)=>{let n=Math.sqrt(v.reduce((s,x)=>s+x*x,0));return n<1e-8?v.map(()=>0):v.map(x=>x/n)}};
 // Config (Short keys)
-const _C={t:0.05,g:[1.2,0.2],s:[0.2,-0.5],sg:0.35,sp:0.3,ah:0.5,eg:0.6,ep:0.4,ei:0.8,em:1.5,gm:0.1,kd:4.0,wg:1,wp:1.3,cw:0.7,ww:0.4,km:1,am:1.2,lr:0.1,dr:0.005,ml:1.5,e:1e-8};
+// em (eta_mem) を 1.5 -> 0.5 に変更
+const _C={t:0.05,g:[1.2,0.2],s:[0.2,-0.5],sg:0.35,sp:0.3,ah:0.5,eg:0.6,ep:0.4,ei:0.8,em:0.5,gm:0.1,kd:4.0,wg:1,wp:1.3,cw:0.7,ww:0.4,km:1,am:1.2,lr:0.1,dr:0.005,ml:1.5,e:1e-8};
 
 class _T{
   constructor(){this.d=[[[0,0],[0,0]],[[0,0],[0,0]]]}
@@ -56,19 +57,19 @@ class _A{
   rst(){this.x=[0,0];this.y=[0,0];this.z=[0,0];this.w=new _T();this.tr=[]}
   up(){
     let dg=_M.s(this.x,_C.g),dp=_M.s(this.x,_C.s),Eg=Math.exp(-_M.d(dg,dg)/(2*_C.sg**2)),Ep=Math.exp(-_M.d(dp,dp)/(2*_C.sp**2));
-    let gc=_M.m(this.x,_C.ah),ge=_M.m(_M.m(dg,-1/(_C.sg**2)),Eg),gv=_M.s(gc,_M.m(ge,_C.eg)); // Fixed: _C.eg
+    let gc=_M.m(this.x,_C.ah),ge=_M.m(_M.m(dg,-1/(_C.sg**2)),Eg),gv=_M.s(gc,_M.m(ge,_C.eg));
     let df=Eg-Ep,tg=[df,-df],dm=_M.m(_M.s(_M.m(tg,_C.am),_M.m(this.z,_C.km)),_C.t);
     this.z=_M.a(this.z,dm);
     let ctx=this.w.gc(this.z),pd=this.w.pd(this.x,ctx);
     let En=_C.wg*Eg-_C.wp*Ep+_C.ww*_C.cw,im=1/(1+Math.exp(-_C.kd*En));
     let bs=_M.s(_C.g,this.x),av=_M.s(this.x,_C.s),mb=Math.tanh(this.z[0]-this.z[1]);
     let dr=_M.a(_M.a(bs,_M.m(av,-0.4)),_M.m(bs,0.3*mb)),dh=_M.z(dr),it=_M.m(dh,im);
-    this.y=_M.a(_M.m(this.y,1-_C.gm),_M.m(it,_C.gm)); // Fixed: _C.gm
+    this.y=_M.a(_M.m(this.y,1-_C.gm),_M.m(it,_C.gm));
     
-    // Calculate Forces for Output
-    let v_pot=_M.m(gv,-_C.ep); // Fixed: _C.ep
-    let v_int=_M.m(this.y,_C.ei); // Fixed: _C.ei
-    let v_mem=_M.m(pd,_C.em); // Fixed: _C.em
+    // Calculate Forces
+    let v_pot=_M.m(gv,-_C.ep);
+    let v_int=_M.m(this.y,_C.ei);
+    let v_mem=_M.m(pd,_C.em);
     
     let vl=_M.a(v_pot,_M.a(v_int,v_mem)),dt=_M.m(vl,_C.t),xp=[...this.x];
     this.x=_M.a(this.x,dt);
@@ -84,7 +85,6 @@ function TS(v){return[OX+v[0]*SC,OY-v[1]*SC]}
 function FS(x,y){return[(x-OX)/SC,-(y-OY)/SC]}
 let dr=null;
 
-// Draw Arrow
 function DA(f,v,c,s=1){
   let t=_M.a(f,_M.m(v,s)),p1=TS(f),p2=TS(t);
   cx.beginPath();cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1]);
@@ -98,27 +98,21 @@ function DA(f,v,c,s=1){
 }
 
 function L(){
-  let f=ag.up(); // Update
+  let f=ag.up();
   cx.clearRect(0,0,800,600);
-  // Grid
   cx.strokeStyle='#e0e0e0';cx.lineWidth=1;cx.beginPath();
   for(let i=-5;i<=5;i++){let p1=TS([i,-5]),p2=TS([i,5]);cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1]);p1=TS([-5,i]);p2=TS([5,i]);cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1])}cx.stroke();
-  // Trail
   if(ag.tr.length>1){cx.beginPath();cx.strokeStyle='rgba(0,0,0,0.3)';cx.lineWidth=2;let s=TS(ag.tr[0]);cx.moveTo(s[0],s[1]);for(let i=1;i<ag.tr.length;i++){let p=TS(ag.tr[i]);cx.lineTo(p[0],p[1])}cx.stroke()}
-  // Objects
   let pg=TS(_C.g);cx.fillStyle='blue';cx.beginPath();cx.arc(pg[0],pg[1],8,0,6.28);cx.fill();cx.fillStyle='white';cx.fillText('G',pg[0]-4,pg[1]+4);
   let ps=TS(_C.s);cx.fillStyle='orange';cx.beginPath();cx.arc(ps[0],ps[1],8,0,6.28);cx.fill();cx.fillStyle='white';cx.fillText('S',ps[0]-4,ps[1]+4);
-  // Self
   let ph=TS(ag.x);cx.fillStyle='black';cx.beginPath();cx.arc(ph[0],ph[1],6,0,6.28);cx.fill();
   
-  // Vectors (Intent=Green, Memory=Purple)
   DA(ag.x, f.i, 'green', 20);
   DA(ag.x, f.m, 'purple', 20);
   
   requestAnimationFrame(L)
 }
 
-// Controls
 cv.addEventListener('mousedown',e=>{let r=cv.getBoundingClientRect(),p=FS(e.clientX-r.left,e.clientY-r.top);if(_M.n(_M.s(p,_C.g))<0.2)dr='g';else if(_M.n(_M.s(p,_C.s))<0.2)dr='s'});
 cv.addEventListener('mousemove',e=>{if(!dr)return;let r=cv.getBoundingClientRect(),p=FS(e.clientX-r.left,e.clientY-r.top);if(dr=='g')_C.g=p;if(dr=='s')_C.s=p});
 cv.addEventListener('mouseup',()=>dr=null);
