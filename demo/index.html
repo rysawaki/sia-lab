@@ -20,7 +20,7 @@ body{font-family:sans-serif;background:#f0f0f0;display:flex;flex-direction:colum
 <span class="dt" style="background:blue;"></span>Goal &nbsp;<span class="dt" style="background:orange;"></span>Shock &nbsp;<span class="dt" style="background:black;"></span>Self &nbsp;|&nbsp; Vec: <span style="color:green;font-weight:bold;">Intent</span>, <span style="color:purple;font-weight:bold;">Memory</span>
 </div>
 <script>
-/* * SIA Engine v0.2 (Obfuscated Build)
+/* * SIA Engine v0.2 (Obfuscated Build - Fixed Viz)
  * Copyright (c) 2025 RS5309. All Rights Reserved.
  * Academic Demonstration Only. No Commercial Use.
  */
@@ -32,8 +32,38 @@ const cv=document.getElementById('sCv'),cx=cv.getContext('2d'),ag=new _A(),SC=15
 function TS(v){return[OX+v[0]*SC,OY-v[1]*SC]}
 function FS(x,y){return[(x-OX)/SC,-(y-OY)/SC]}
 let dr=null;
-function DA(f,v,c,s=1){let t=_M.a(f,_M.m(v,s)),p1=TS(f),p2=TS(t);cx.beginPath();cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1]);cx.strokeStyle=c;cx.lineWidth=2;cx.stroke();let a=Math.atan2(p2[1]-p1[1],p2[0]-p1[0]);cx.beginPath();cx.moveTo(p2[0],p2[1]);cx.lineTo(p2[0]-10*Math.cos(a-Math.PI/6),p2[1]-10*Math.sin(a-Math.PI/6));cx.lineTo(p2[0]-10*Math.cos(a+Math.PI/6),p2[1]-10*Math.sin(a+Math.PI/6));cx.fillStyle=c;cx.fill()}
-function L(){let f=ag.up();cx.clearRect(0,0,800,600);cx.strokeStyle='#e0e0e0';cx.lineWidth=1;cx.beginPath();for(let i=-5;i<=5;i++){let p1=TS([i,-5]),p2=TS([i,5]);cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1]);p1=TS([-5,i]);p2=TS([5,i]);cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1])}cx.stroke();if(ag.tr.length>1){cx.beginPath();cx.strokeStyle='rgba(0,0,0,0.3)';cx.lineWidth=2;let s=TS(ag.tr[0]);cx.moveTo(s[0],s[1]);for(let i=1;i<ag.tr.length;i++){let p=TS(ag.tr[i]);cx.lineTo(p[0],p[1])}cx.stroke()}let pg=TS(_C.g);cx.fillStyle='blue';cx.beginPath();cx.arc(pg[0],pg[1],8,0,6.28);cx.fill();cx.fillStyle='white';cx.fillText('G',pg[0]-4,pg[1]+4);let ps=TS(_C.s);cx.fillStyle='orange';cx.beginPath();cx.arc(ps[0],ps[1],8,0,6.28);cx.fill();cx.fillStyle='white';cx.fillText('S',ps[0]-4,ps[1]+4);let ph=TS(ag.x);cx.fillStyle='black';cx.beginPath();cx.arc(ph[0],ph[1],6,0,6.28);cx.fill();DA(ag.x,f.i,'green',20);DA(ag.x,f.m,'purple',20);requestAnimationFrame(L)}
+
+// --- 修正箇所: 矢印描画関数 (DA) を見やすい形に戻しました ---
+function DA(f, v, c, s = 1) {
+    // f:始点, v:ベクトル, c:色, s:スケール
+    let t = _M.a(f, _M.m(v, s)); // 終点 = 始点 + ベクトル*スケール
+    let p1 = TS(f); // スクリーン座標への変換
+    let p2 = TS(t);
+
+    // 線の描画
+    cx.beginPath();
+    cx.moveTo(p1[0], p1[1]);
+    cx.lineTo(p2[0], p2[1]);
+    cx.strokeStyle = c;
+    cx.lineWidth = 2;
+    cx.stroke();
+
+    // 矢印の先端の描画
+    let a = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]); // 角度
+    cx.beginPath();
+    cx.moveTo(p2[0], p2[1]);
+    cx.lineTo(p2[0] - 10 * Math.cos(a - Math.PI / 6), p2[1] - 10 * Math.sin(a - Math.PI / 6));
+    cx.lineTo(p2[0] - 10 * Math.cos(a + Math.PI / 6), p2[1] - 10 * Math.sin(a + Math.PI / 6));
+    cx.fillStyle = c;
+    cx.fill();
+}
+// ---------------------------------------------------
+
+function L(){let f=ag.up();cx.clearRect(0,0,800,600);cx.strokeStyle='#e0e0e0';cx.lineWidth=1;cx.beginPath();for(let i=-5;i<=5;i++){let p1=TS([i,-5]),p2=TS([i,5]);cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1]);p1=TS([-5,i]);p2=TS([5,i]);cx.moveTo(p1[0],p1[1]);cx.lineTo(p2[0],p2[1])}cx.stroke();if(ag.tr.length>1){cx.beginPath();cx.strokeStyle='rgba(0,0,0,0.3)';cx.lineWidth=2;let s=TS(ag.tr[0]);cx.moveTo(s[0],s[1]);for(let i=1;i<ag.tr.length;i++){let p=TS(ag.tr[i]);cx.lineTo(p[0],p[1])}cx.stroke()}let pg=TS(_C.g);cx.fillStyle='blue';cx.beginPath();cx.arc(pg[0],pg[1],8,0,6.28);cx.fill();cx.fillStyle='white';cx.fillText('G',pg[0]-4,pg[1]+4);let ps=TS(_C.s);cx.fillStyle='orange';cx.beginPath();cx.arc(ps[0],ps[1],8,0,6.28);cx.fill();cx.fillStyle='white';cx.fillText('S',ps[0]-4,ps[1]+4);let ph=TS(ag.x);cx.fillStyle='black';cx.beginPath();cx.arc(ph[0],ph[1],6,0,6.28);cx.fill();
+// 矢印の描画呼び出し
+DA(ag.x,f.i,'green',20);
+DA(ag.x,f.m,'purple',20);
+requestAnimationFrame(L)}
 cv.addEventListener('mousedown',e=>{let r=cv.getBoundingClientRect(),p=FS(e.clientX-r.left,e.clientY-r.top);if(_M.n(_M.s(p,_C.g))<0.2)dr='g';else if(_M.n(_M.s(p,_C.s))<0.2)dr='s'});
 cv.addEventListener('mousemove',e=>{if(!dr)return;let r=cv.getBoundingClientRect(),p=FS(e.clientX-r.left,e.clientY-r.top);if(dr=='g')_C.g=p;if(dr=='s')_C.s=p});
 cv.addEventListener('mouseup',()=>dr=null);
