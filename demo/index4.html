@@ -152,9 +152,9 @@ class RelayBank {
             
             // Width logic (Low centers -> short, High -> long)
             let width = 0.05;
-            if (this.c[i] < 0.3) width = 0.02;
-            else if (this.c[i] < 0.7) width = 0.08;
-            else width = 0.20;
+            if (this.c[i] < 0.3) width = 0.05;       // 小さな記憶も残りやすく
+            else if (this.c[i] < 0.7) width = 0.20;  // 中くらいの記憶も粘り強く
+            else width = 0.45; // ← 【重要】深い記憶は、刺激がほぼゼロになるまで消えない
             
             this.h[i] = width;
             this.alpha[i] = Math.min(this.c[i] + width, 1.0);
