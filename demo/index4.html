@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SIA Model - Trauma Edition</title>
+    <title>SIA Model - High Sensitive & Gradual Healing</title>
     <style>
         body {
             background-color: #0d0d0d;
@@ -12,9 +12,8 @@
             margin: 0;
             display: flex;
             flex-direction: column;
-            /* iOS Safariのアドレスバー対策 (Dynamic Viewport Height) */
             height: 100vh;
-            height: 100dvh; 
+            height: 100dvh; /* iOS Safari fix */
             overflow: hidden;
         }
         #header {
@@ -39,20 +38,12 @@
             flex-grow: 1;
             width: 100%;
             background: #000;
-            min-height: 0; /* Flexboxのはみ出し防止 */
+            min-height: 0;
         }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
+        canvas { display: block; width: 100%; height: 100%; }
         .overlay-label {
-            position: absolute;
-            left: 10px;
-            font-size: 0.8rem;
-            opacity: 0.8;
-            pointer-events: none;
-            text-shadow: 1px 1px 2px black;
+            position: absolute; left: 10px; font-size: 0.8rem;
+            opacity: 0.8; pointer-events: none; text-shadow: 1px 1px 2px black;
         }
         #controls {
             padding: 10px;
@@ -61,46 +52,32 @@
             display: grid;
             grid-template-columns: 1fr 1fr 2fr;
             gap: 8px;
-            height: 80px; /* 固定高さ */
+            height: 80px;
             flex-shrink: 0;
-            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* iPhone X以降の下部バー対策 */
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
         }
         button {
-            border: none;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 1rem;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            transition: all 0.1s;
-            -webkit-tap-highlight-color: transparent;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            line-height: 1.2;
+            border: none; border-radius: 6px;
+            font-family: inherit; font-size: 1rem; font-weight: bold;
+            color: white; cursor: pointer;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            line-height: 1.2; -webkit-tap-highlight-color: transparent;
         }
         button small { font-size: 0.7rem; opacity: 0.8; font-weight: normal; }
         button:active { transform: scale(0.96); filter: brightness(0.8); }
         
-        .btn-v { background: linear-gradient(135deg, #b71c1c, #e91e63); box-shadow: 0 4px 0 #7f0000; }
-        .btn-v:active { box-shadow: 0 0 0 #7f0000; transform: translateY(4px); }
-        
-        .btn-s { background: linear-gradient(135deg, #4a148c, #9c27b0); box-shadow: 0 4px 0 #311b92; }
-        .btn-s:active { box-shadow: 0 0 0 #311b92; transform: translateY(4px); }
-        
-        .btn-safe { background: linear-gradient(135deg, #0d47a1, #2196f3); box-shadow: 0 4px 0 #01579b; }
-        .btn-safe:active { box-shadow: 0 0 0 #01579b; transform: translateY(4px); }
-
+        .btn-v { background: linear-gradient(135deg, #b71c1c, #e91e63); }
+        .btn-s { background: linear-gradient(135deg, #4a148c, #9c27b0); }
+        .btn-safe { background: linear-gradient(135deg, #0d47a1, #2196f3); }
     </style>
 </head>
 <body>
 
 <div id="header">
     <div>
-        <h1>SIA Model <span style="font-size:0.8em; border:1px solid red; padding:2px; border-radius:4px;">PATHOLOGICAL</span></h1>
-        <span class="subtitle">Trauma Latching Simulator</span>
+        <h1>SIA Model <span style="font-size:0.8em; border:1px solid red; padding:2px; border-radius:4px;">SENSITIVE</span></h1>
+        <span class="subtitle">Pathological Latching & Gradual Healing</span>
     </div>
     <div class="status-panel">
         <div id="action-display">EXPLORE</div>
@@ -109,9 +86,9 @@
 </div>
 
 <div id="canvas-container">
-    <div class="overlay-label" style="top: 10px; color: #ff4081;">■ Stimulus (V + 0.3*S)</div>
-    <div class="overlay-label" style="top: 30px; color: #ffffff;">■ Trace (Memory/Trauma)</div>
-    <div class="overlay-label" style="top: 50px; color: #00e676;">■ Budget (Mental Resource)</div>
+    <div class="overlay-label" style="top: 10px; color: #ff4081;">■ Stimulus (V + 1.2*S)</div>
+    <div class="overlay-label" style="top: 30px; color: #ffffff;">■ Trace (Trauma)</div>
+    <div class="overlay-label" style="top: 50px; color: #00e676;">■ Budget (Resource)</div>
     <canvas id="scope"></canvas>
 </div>
 
@@ -123,11 +100,8 @@
 
 <script>
 /**
- * SIA Logic: Pathological Edition
- * - Deep memories (trauma) never fade naturally.
- * - Recovery is only possible via Safe Context intervention.
+ * SIA Logic: High Sensitivity & Gradual Healing
  */
-
 class RelayBank {
     constructor(N) {
         this.N = N;
@@ -140,50 +114,48 @@ class RelayBank {
             this.c[i] = (i + 0.5) / N;
             this.q[i] = 0;
             
-            // --- 病的仕様への変更点 ---
-            let width;
-            if (this.c[i] < 0.3) {
-                width = 0.05; // 浅い記憶はすぐ消える
-            } else if (this.c[i] < 0.6) {
-                width = 0.25; // 中程度の記憶
-            } else {
-                width = 1.0;  // 深い記憶は幅を無限大にする
-            }
+            // ヒステリシス幅の設定
+            let width = 0.05; // デフォルトは狭い（すぐ忘れる）
             
-            this.alpha[i] = Math.min(this.c[i] + 0.1, 1.0); // 刻印はされやすい(0.1)
-            
-            // 【重要】深い領域では Beta をマイナスにする
-            // これにより Stimulus が 0.0 になっても Beta を下回らないため、
-            // 自然には絶対に OFF にならない（固着）。
+            // 深い領域（0.6以上）は「無限のトラウマ」として設定
             if (this.c[i] >= 0.6) {
-                this.beta[i] = -1.0; 
+                width = 1.0; 
+                this.beta[i] = -1.0; // 【重要】自然には絶対にOFFにならない
             } else {
+                // 浅い～中程度の記憶
+                if (this.c[i] >= 0.3) width = 0.25;
                 this.beta[i] = Math.max(this.c[i] - width, 0.0);
             }
+            
+            this.alpha[i] = Math.min(this.c[i] + 0.1, 1.0);
         }
     }
 
-    // 引数を変更: (刺激, 安全基地フラグ)
+    // s: 刺激, is_safe: 安全基地フラグ
     update(s, is_safe) {
         for(let i=0; i<this.N; i++) {
             
-            // 1. 治療ロジック (Therapy)
-            // 安全基地があり、かつ刺激が落ち着いている(0.2以下)なら強制解除
-            if (is_safe && s < 0.2) {
-                this.q[i] = 0; 
+            // --- 治療ロジック（Gradual Healing） ---
+            // 安全基地にいる間だけ、無限のトラウマ(beta=-1.0)を、
+            // 「普通の記憶(beta = center - 0.15)」として一時的に扱う。
+            // これにより、s(刺激)の低下に合わせて、高い閾値から順にOFFになっていく。
+            let effective_beta = this.beta[i];
+            
+            if (is_safe) {
+                // 治療モード: 忘却ラインを一時的に引き上げる（回復可能にする）
+                effective_beta = Math.max(this.c[i] - 0.15, 0.0);
             }
-            
-            // 2. 通常の忘却ロジック (Natural Decay)
-            // 深いトラウマの場合、betaが-1.0なので、ここは永遠にFalseになる
-            else if (s <= this.beta[i]) {
+
+            // --- 状態更新 ---
+            if (s <= effective_beta) {
+                // 刺激が「有効な忘却ライン」を下回ったらOFF
+                // 安全基地にいるときは effective_beta が高いので、ここでOFFになりやすい
                 this.q[i] = 0; 
-            } 
-            
-            // 3. 新規刻印 (Imprinting)
-            // 安全基地でない場合のみ、新しい傷が増える
-            else if (!is_safe && s >= this.alpha[i]) {
+            } else if (!is_safe && s >= this.alpha[i]) {
+                // 安全基地でない時だけ、新規書き込み(ON)
                 this.q[i] = 1; 
             }
+            // それ以外（effective_beta < s < alpha）は記憶保持
         }
     }
 
@@ -218,17 +190,19 @@ function getAction(budget) {
     if (budget > RISK.explore) return { text: "EXPLORE (Active)", color: "#66bb6a" }; 
     if (budget > RISK.assert)  return { text: "ASSERT (Firm)",    color: "#42a5f5" }; 
     if (budget > RISK.repair)  return { text: "REPAIR (Hesitant)",color: "#ffa726" }; 
-    return { text: "BOUNDARY (Closed)",color: "#ff5252" }; // Red
+    return { text: "BOUNDARY (Closed)",color: "#ff5252" }; 
 }
 
-// --- Main Loop ---
 function updatePhysics() {
-    input_V *= 0.96; // 少しゆっくり減衰
+    // 自然減衰（入力値が下がるスピード）
+    input_V *= 0.96; 
     input_S *= 0.92;
 
-    let stimulus = Math.min(input_V + 0.3 * input_S, 1.0);
+    // 【重要】Surprise(S)の係数を1.2に設定（ガラスのハート）
+    // S単体でもTraceがMAXになる
+    let stimulus = Math.min(input_V + 1.2 * input_S, 1.0);
 
-    // 更新ロジックに is_safe を直接渡す
+    // バンク更新
     bank.update(stimulus, is_safe);
 
     let trace = bank.readout(2.0);
@@ -239,12 +213,9 @@ function updatePhysics() {
     hist_Budget.shift(); hist_Budget.push(budget);
 
     const action = getAction(budget);
-    const actionDisplay = document.getElementById('action-display');
-    const budgetDisplay = document.getElementById('budget-val');
-    
-    actionDisplay.innerText = action.text;
-    actionDisplay.style.color = action.color;
-    budgetDisplay.innerText = `Budget: ${(budget*100).toFixed(0)}%`;
+    document.getElementById('action-display').innerText = action.text;
+    document.getElementById('action-display').style.color = action.color;
+    document.getElementById('budget-val').innerText = `Budget: ${(budget*100).toFixed(0)}%`;
 }
 
 // --- Rendering ---
@@ -252,21 +223,17 @@ const canvas = document.getElementById('scope');
 const ctx = canvas.getContext('2d');
 
 function resizeCanvas() {
-    // コンテナのサイズに合わせる
     const container = document.getElementById('canvas-container');
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
 }
 window.addEventListener('resize', resizeCanvas);
-// 初期化時にも呼ぶ（少し遅延させると安全）
 setTimeout(resizeCanvas, 100);
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Safe Context Visualization
     if (is_safe) {
-        // 青みがかった背景
         let grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
         grd.addColorStop(0, "#0d1b2a");
         grd.addColorStop(1, "#1b263b");
@@ -277,11 +244,8 @@ function draw() {
         ctx.fillStyle = "rgba(66, 165, 245, 0.2)";
         ctx.textAlign = "center";
         ctx.fillText("SAFE CONTEXT ACTIVE", canvas.width/2, canvas.height/2);
-        ctx.font = "14px Courier New";
-        ctx.fillText("(Healing Protocol Enabled)", canvas.width/2, canvas.height/2 + 25);
     }
 
-    // Grid
     ctx.strokeStyle = "#333";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -305,9 +269,9 @@ function draw() {
         ctx.stroke();
     }
 
-    drawLine(hist_V, "#ff4081", 2);      // Stimulus
-    drawLine(hist_Budget, "#00e676", 1); // Budget
-    drawLine(hist_Trace, is_safe ? "#90caf9" : "#ffffff", 3); // Trace
+    drawLine(hist_V, "#ff4081", 2);      
+    drawLine(hist_Budget, "#00e676", 1); 
+    drawLine(hist_Trace, is_safe ? "#90caf9" : "#ffffff", 3); 
 
     requestAnimationFrame(draw);
 }
@@ -320,40 +284,25 @@ const btnV = document.getElementById('btn-v');
 const btnS = document.getElementById('btn-s');
 const btnSafe = document.getElementById('btn-safe');
 
-// タッチ＆マウス対応（イベントの重複発火を防ぐ）
 const addPress = (el, actionStart, actionEnd) => {
-    // Mouse
-    el.addEventListener('mousedown', (e) => { actionStart(); });
-    el.addEventListener('mouseup',   (e) => { actionEnd(); });
-    el.addEventListener('mouseleave',(e) => { actionEnd(); });
-    
-    // Touch
-    el.addEventListener('touchstart', (e) => { 
-        e.preventDefault(); // ダブルタップズーム等を防ぐ
-        actionStart(); 
-    }, {passive: false});
-    
-    el.addEventListener('touchend', (e) => { 
-        e.preventDefault(); 
-        actionEnd(); 
-    }, {passive: false});
+    el.addEventListener('mousedown', actionStart);
+    el.addEventListener('mouseup', actionEnd);
+    el.addEventListener('mouseleave', actionEnd);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); actionStart(); }, {passive: false});
+    el.addEventListener('touchend', (e) => { e.preventDefault(); actionEnd(); }, {passive: false});
 };
 
 addPress(btnV, () => { input_V = Math.min(input_V + 0.3, 1.0); }, () => {});
 addPress(btnS, () => { input_S = Math.min(input_S + 0.3, 1.0); }, () => {});
 addPress(btnSafe, () => { is_safe = true; }, () => { is_safe = false; });
 
-// Keyboard
 document.addEventListener('keydown', (e) => {
     if (e.repeat) return;
     if (e.key.toLowerCase() === 'v') input_V = Math.min(input_V + 0.3, 1.0);
     if (e.key.toLowerCase() === 's') input_S = Math.min(input_S + 0.3, 1.0);
     if (e.key === ' ') is_safe = true;
 });
-
-document.addEventListener('keyup', (e) => {
-    if (e.key === ' ') is_safe = false;
-});
+document.addEventListener('keyup', (e) => { if (e.key === ' ') is_safe = false; });
 
 </script>
 </body>
