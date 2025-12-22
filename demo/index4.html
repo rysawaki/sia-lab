@@ -2,115 +2,105 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIA Cockpit - Interactive Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SIA Model - Trauma Edition</title>
     <style>
         body {
-            background-color: #121212;
+            background-color: #0d0d0d;
             color: #e0e0e0;
             font-family: 'Courier New', Courier, monospace;
             margin: 0;
             display: flex;
             flex-direction: column;
-            
-            /* 修正箇所: dvhを使うことでSafariのアドレスバーを回避 */
-            height: 100vh;      /* 古いブラウザ用フォールバック */
-            height: 100dvh;     /* iOS Safari用の動的な高さ指定 */
-            
+            /* iOS Safariのアドレスバー対策 (Dynamic Viewport Height) */
+            height: 100vh;
+            height: 100dvh; 
             overflow: hidden;
-        }
-        
-        /* 追加修正: コンテナが正しく縮小するように設定 */
-        #canvas-container {
-            position: relative;
-            flex-grow: 1;
-            width: 100%;
-            background: #000;
-            min-height: 0; /* ← これを追加（Flexアイテムがはみ出さないようにする重要設定） */
-        }
-        
-        /* 追加修正: コントロールパネルが潰れないようにする */
-        #controls {
-            flex-shrink: 0; /* ← これを追加（画面が狭くてもボタン領域を確保） */
-            /* ...以下既存の設定... */
-            padding: 15px;
-            background: #1e1e1e;
-            /* ... */
         }
         #header {
             padding: 10px 20px;
-            background: #1e1e1e;
+            background: #1a1a1a;
             border-bottom: 1px solid #333;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
-        h1 { margin: 0; font-size: 1.2rem; color: #4fc3f7; }
-        .status-panel {
-            text-align: right;
-        }
+        h1 { margin: 0; font-size: 1.1rem; color: #ff5252; }
+        .subtitle { font-size: 0.7rem; color: #888; display: block;}
+        .status-panel { text-align: right; }
         #action-display {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: bold;
-            color: #66bb6a; /* Default explore */
+            color: #66bb6a;
         }
         #canvas-container {
             position: relative;
             flex-grow: 1;
             width: 100%;
             background: #000;
+            min-height: 0; /* Flexboxのはみ出し防止 */
         }
         canvas {
             display: block;
             width: 100%;
             height: 100%;
         }
-        /* Overlay text on canvas */
         .overlay-label {
             position: absolute;
             left: 10px;
             font-size: 0.8rem;
-            opacity: 0.7;
+            opacity: 0.8;
             pointer-events: none;
+            text-shadow: 1px 1px 2px black;
         }
         #controls {
-            padding: 15px;
-            background: #1e1e1e;
+            padding: 10px;
+            background: #1a1a1a;
             border-top: 1px solid #333;
             display: grid;
-            grid-template-columns: 1fr 1fr 2fr; /* V, S, SPACE */
-            gap: 10px;
-            height: 80px;
+            grid-template-columns: 1fr 1fr 2fr;
+            gap: 8px;
+            height: 80px; /* 固定高さ */
+            flex-shrink: 0;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); /* iPhone X以降の下部バー対策 */
         }
         button {
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             font-family: inherit;
             font-size: 1rem;
             font-weight: bold;
             color: white;
             cursor: pointer;
-            transition: transform 0.1s, opacity 0.1s;
+            transition: all 0.1s;
             -webkit-tap-highlight-color: transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.2;
         }
-        button:active { transform: scale(0.95); }
-        .btn-v { background-color: #e91e63; }
-        .btn-s { background-color: #9c27b0; }
-        .btn-safe { background-color: #2196f3; }
+        button small { font-size: 0.7rem; opacity: 0.8; font-weight: normal; }
+        button:active { transform: scale(0.96); filter: brightness(0.8); }
         
-        /* Mobile adjustments */
-        @media (max-width: 600px) {
-            #action-display { font-size: 1.2rem; }
-            h1 { font-size: 1rem; }
-        }
+        .btn-v { background: linear-gradient(135deg, #b71c1c, #e91e63); box-shadow: 0 4px 0 #7f0000; }
+        .btn-v:active { box-shadow: 0 0 0 #7f0000; transform: translateY(4px); }
+        
+        .btn-s { background: linear-gradient(135deg, #4a148c, #9c27b0); box-shadow: 0 4px 0 #311b92; }
+        .btn-s:active { box-shadow: 0 0 0 #311b92; transform: translateY(4px); }
+        
+        .btn-safe { background: linear-gradient(135deg, #0d47a1, #2196f3); box-shadow: 0 4px 0 #01579b; }
+        .btn-safe:active { box-shadow: 0 0 0 #01579b; transform: translateY(4px); }
+
     </style>
 </head>
 <body>
 
 <div id="header">
     <div>
-        <h1>SIA Model Demo</h1>
-        <small style="color: #888;">Self Imprint Attribution</small>
+        <h1>SIA Model <span style="font-size:0.8em; border:1px solid red; padding:2px; border-radius:4px;">PATHOLOGICAL</span></h1>
+        <span class="subtitle">Trauma Latching Simulator</span>
     </div>
     <div class="status-panel">
         <div id="action-display">EXPLORE</div>
@@ -119,58 +109,81 @@
 </div>
 
 <div id="canvas-container">
-    <div class="overlay-label" style="top: 10px; color: #ff4081;">■ Stimulus (V+S)</div>
-    <div class="overlay-label" style="top: 30px; color: #ffffff;">■ Trace (Memory)</div>
-    <div class="overlay-label" style="top: 50px; color: #00e676;">■ Budget (Resource)</div>
+    <div class="overlay-label" style="top: 10px; color: #ff4081;">■ Stimulus (V + 0.3*S)</div>
+    <div class="overlay-label" style="top: 30px; color: #ffffff;">■ Trace (Memory/Trauma)</div>
+    <div class="overlay-label" style="top: 50px; color: #00e676;">■ Budget (Mental Resource)</div>
     <canvas id="scope"></canvas>
 </div>
 
 <div id="controls">
-    <button class="btn-v" id="btn-v">V<br><small>Violation</small></button>
-    <button class="btn-s" id="btn-s">S<br><small>Surprise</small></button>
-    <button class="btn-safe" id="btn-safe">SAFE BASE<br><small>Hold to Heal</small></button>
+    <button class="btn-v" id="btn-v">V<small>Violation</small></button>
+    <button class="btn-s" id="btn-s">S<small>Surprise</small></button>
+    <button class="btn-safe" id="btn-safe">SAFE BASE<small>Hold to Heal</small></button>
 </div>
 
 <script>
 /**
- * SIA Logic Ported to JavaScript
+ * SIA Logic: Pathological Edition
+ * - Deep memories (trauma) never fade naturally.
+ * - Recovery is only possible via Safe Context intervention.
  */
 
 class RelayBank {
     constructor(N) {
         this.N = N;
-        this.c = []; // centers
-        this.h = []; // widths
-        this.q = []; // states (0 or 1)
+        this.c = []; 
+        this.q = []; 
         this.alpha = [];
         this.beta = [];
 
-        // Initialize centers 0..1
         for(let i=0; i<N; i++) {
             this.c[i] = (i + 0.5) / N;
             this.q[i] = 0;
             
-            // Width logic (Low centers -> short, High -> long)
-            let width = 0.05;
-            if (this.c[i] < 0.3) width = 0.05;       // 小さな記憶も残りやすく
-            else if (this.c[i] < 0.7) width = 0.20;  // 中くらいの記憶も粘り強く
-            else width = 0.45; // ← 【重要】深い記憶は、刺激がほぼゼロになるまで消えない
+            // --- 病的仕様への変更点 ---
+            let width;
+            if (this.c[i] < 0.3) {
+                width = 0.05; // 浅い記憶はすぐ消える
+            } else if (this.c[i] < 0.6) {
+                width = 0.25; // 中程度の記憶
+            } else {
+                width = 1.0;  // 深い記憶は幅を無限大にする
+            }
             
-            this.h[i] = width;
-            this.alpha[i] = Math.min(this.c[i] + width, 1.0);
-            this.beta[i]  = Math.max(this.c[i] - width, 0.0);
+            this.alpha[i] = Math.min(this.c[i] + 0.1, 1.0); // 刻印はされやすい(0.1)
+            
+            // 【重要】深い領域では Beta をマイナスにする
+            // これにより Stimulus が 0.0 になっても Beta を下回らないため、
+            // 自然には絶対に OFF にならない（固着）。
+            if (this.c[i] >= 0.6) {
+                this.beta[i] = -1.0; 
+            } else {
+                this.beta[i] = Math.max(this.c[i] - width, 0.0);
+            }
         }
     }
 
-    update(s, allow_on) {
+    // 引数を変更: (刺激, 安全基地フラグ)
+    update(s, is_safe) {
         for(let i=0; i<this.N; i++) {
-            // Hysteresis Logic
-            if (s <= this.beta[i]) {
-                this.q[i] = 0; // Turn OFF (Always possible to forget/heal if stimulus is low enough)
-            } else if (allow_on && s >= this.alpha[i]) {
-                this.q[i] = 1; // Turn ON (Only if not in safe context lock)
+            
+            // 1. 治療ロジック (Therapy)
+            // 安全基地があり、かつ刺激が落ち着いている(0.2以下)なら強制解除
+            if (is_safe && s < 0.2) {
+                this.q[i] = 0; 
             }
-            // If between beta and alpha, maintain state (Memory)
+            
+            // 2. 通常の忘却ロジック (Natural Decay)
+            // 深いトラウマの場合、betaが-1.0なので、ここは永遠にFalseになる
+            else if (s <= this.beta[i]) {
+                this.q[i] = 0; 
+            } 
+            
+            // 3. 新規刻印 (Imprinting)
+            // 安全基地でない場合のみ、新しい傷が増える
+            else if (!is_safe && s >= this.alpha[i]) {
+                this.q[i] = 1; 
+            }
         }
     }
 
@@ -193,49 +206,38 @@ let input_V = 0.0;
 let input_S = 0.0;
 let is_safe = false;
 
-// History buffers for plotting
+// History buffers
 const historyLen = 300;
 const hist_V = new Array(historyLen).fill(0);
 const hist_Trace = new Array(historyLen).fill(0);
 const hist_Budget = new Array(historyLen).fill(0);
 
-// Risk thresholds
 const RISK = { explore: 0.60, assert: 0.45, repair: 0.20, boundary: 0.10 };
 
 function getAction(budget) {
-    if (budget > RISK.explore) return { text: "EXPLORE (Active)", color: "#66bb6a" }; // Green
-    if (budget > RISK.assert)  return { text: "ASSERT (Firm)",    color: "#42a5f5" }; // Blue
-    if (budget > RISK.repair)  return { text: "REPAIR (Hesitant)",color: "#ffa726" }; // Orange
-    return { text: "BOUNDARY (Closed)",color: "#ef5350" }; // Red
+    if (budget > RISK.explore) return { text: "EXPLORE (Active)", color: "#66bb6a" }; 
+    if (budget > RISK.assert)  return { text: "ASSERT (Firm)",    color: "#42a5f5" }; 
+    if (budget > RISK.repair)  return { text: "REPAIR (Hesitant)",color: "#ffa726" }; 
+    return { text: "BOUNDARY (Closed)",color: "#ff5252" }; // Red
 }
 
 // --- Main Loop ---
 function updatePhysics() {
-    // 1. Decay inputs
-    input_V *= 0.95;
-    input_S *= 0.90;
+    input_V *= 0.96; // 少しゆっくり減衰
+    input_S *= 0.92;
 
-    // 2. Mix Stimulus
-    // Violation is a strong driver
     let stimulus = Math.min(input_V + 0.3 * input_S, 1.0);
 
-    // 3. Update Bank
-    // In SIA: Safe context prevents NEW imprinting (allow_on=false)
-    let allow_imprint = !is_safe;
-    bank.update(stimulus, allow_imprint);
+    // 更新ロジックに is_safe を直接渡す
+    bank.update(stimulus, is_safe);
 
-    // 4. Readout
     let trace = bank.readout(2.0);
-    
-    // Budget Calculation (starts at 0.8, reduced by trace)
     let budget = Math.max(0.8 - 0.7 * trace, 0.0);
 
-    // 5. Update History
     hist_V.shift(); hist_V.push(stimulus);
     hist_Trace.shift(); hist_Trace.push(trace);
     hist_Budget.shift(); hist_Budget.push(budget);
 
-    // 6. UI Text Update
     const action = getAction(budget);
     const actionDisplay = document.getElementById('action-display');
     const budgetDisplay = document.getElementById('budget-val');
@@ -250,28 +252,36 @@ const canvas = document.getElementById('scope');
 const ctx = canvas.getContext('2d');
 
 function resizeCanvas() {
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight;
+    // コンテナのサイズに合わせる
+    const container = document.getElementById('canvas-container');
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
 }
 window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+// 初期化時にも呼ぶ（少し遅延させると安全）
+setTimeout(resizeCanvas, 100);
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Background Color (Visualizing Safe Context)
+    // Safe Context Visualization
     if (is_safe) {
-        ctx.fillStyle = "#0d1b2a"; // Dark Blueish for Safe
+        // 青みがかった背景
+        let grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grd.addColorStop(0, "#0d1b2a");
+        grd.addColorStop(1, "#1b263b");
+        ctx.fillStyle = grd;
         ctx.fillRect(0,0, canvas.width, canvas.height);
         
-        // Safe Text Indicator
-        ctx.font = "bold 20px Courier New";
-        ctx.fillStyle = "rgba(33, 150, 243, 0.3)";
+        ctx.font = "bold 24px Courier New";
+        ctx.fillStyle = "rgba(66, 165, 245, 0.2)";
         ctx.textAlign = "center";
         ctx.fillText("SAFE CONTEXT ACTIVE", canvas.width/2, canvas.height/2);
+        ctx.font = "14px Courier New";
+        ctx.fillText("(Healing Protocol Enabled)", canvas.width/2, canvas.height/2 + 25);
     }
 
-    // Grid lines
+    // Grid
     ctx.strokeStyle = "#333";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -281,53 +291,59 @@ function draw() {
     }
     ctx.stroke();
 
-    // Helper to draw a line graph
     function drawLine(data, color, width) {
         ctx.beginPath();
         ctx.strokeStyle = color;
         ctx.lineWidth = width;
         let step = canvas.width / (historyLen - 1);
-        
         for (let i = 0; i < historyLen; i++) {
             let x = i * step;
-            let y = canvas.height * (1 - data[i] * 0.9 - 0.05); // margin
+            let y = canvas.height * (1 - data[i] * 0.9 - 0.05);
             if (i===0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
         ctx.stroke();
     }
 
-    // Draw Graphs
-    drawLine(hist_V, "#ff4081", 2);      // Stimulus (Magenta)
-    drawLine(hist_Budget, "#00e676", 1); // Budget (Green)
-    drawLine(hist_Trace, is_safe ? "#bbdefb" : "#ffffff", 3); // Trace (White, blueish if safe)
+    drawLine(hist_V, "#ff4081", 2);      // Stimulus
+    drawLine(hist_Budget, "#00e676", 1); // Budget
+    drawLine(hist_Trace, is_safe ? "#90caf9" : "#ffffff", 3); // Trace
 
     requestAnimationFrame(draw);
 }
 
-// Loop
-setInterval(updatePhysics, 50); // 20fps physics
-requestAnimationFrame(draw);    // Screen refresh rate
+setInterval(updatePhysics, 50);
+requestAnimationFrame(draw);
 
 // --- Input Handling ---
 const btnV = document.getElementById('btn-v');
 const btnS = document.getElementById('btn-s');
 const btnSafe = document.getElementById('btn-safe');
 
-// Mouse/Touch Logic
+// タッチ＆マウス対応（イベントの重複発火を防ぐ）
 const addPress = (el, actionStart, actionEnd) => {
-    el.addEventListener('mousedown', actionStart);
-    el.addEventListener('mouseup', actionEnd);
-    el.addEventListener('mouseleave', actionEnd);
-    el.addEventListener('touchstart', (e) => { e.preventDefault(); actionStart(); });
-    el.addEventListener('touchend', (e) => { e.preventDefault(); actionEnd(); });
+    // Mouse
+    el.addEventListener('mousedown', (e) => { actionStart(); });
+    el.addEventListener('mouseup',   (e) => { actionEnd(); });
+    el.addEventListener('mouseleave',(e) => { actionEnd(); });
+    
+    // Touch
+    el.addEventListener('touchstart', (e) => { 
+        e.preventDefault(); // ダブルタップズーム等を防ぐ
+        actionStart(); 
+    }, {passive: false});
+    
+    el.addEventListener('touchend', (e) => { 
+        e.preventDefault(); 
+        actionEnd(); 
+    }, {passive: false});
 };
 
 addPress(btnV, () => { input_V = Math.min(input_V + 0.3, 1.0); }, () => {});
 addPress(btnS, () => { input_S = Math.min(input_S + 0.3, 1.0); }, () => {});
 addPress(btnSafe, () => { is_safe = true; }, () => { is_safe = false; });
 
-// Keyboard Logic
+// Keyboard
 document.addEventListener('keydown', (e) => {
     if (e.repeat) return;
     if (e.key.toLowerCase() === 'v') input_V = Math.min(input_V + 0.3, 1.0);
