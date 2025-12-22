@@ -1,38 +1,51 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SIA Model - High Sensitive & Gradual Healing</title>
+    <title>SIA: Stateful Alignment Demo</title>
     <style>
         body {
             background-color: #0d0d0d;
             color: #e0e0e0;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             margin: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            height: 100dvh; /* iOS Safari fix */
+            height: 100dvh; 
             overflow: hidden;
         }
+        
+        /* Header Area */
         #header {
-            padding: 10px 20px;
-            background: #1a1a1a;
+            padding: 12px 20px;
+            background: #151515;
             border-bottom: 1px solid #333;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
+            z-index: 10;
         }
-        h1 { margin: 0; font-size: 1.1rem; color: #ff5252; }
-        .subtitle { font-size: 0.7rem; color: #888; display: block;}
+        h1 { margin: 0; font-size: 1.0rem; color: #00e676; letter-spacing: 1px; font-family: 'Courier New', monospace; }
+        .subtitle { font-size: 0.65rem; color: #888; display: block; margin-top: 2px;}
+        
+        /* Tech Button */
+        #help-btn {
+            background: #1a1a1a; color: #00e676; border: 1px solid #00e676;
+            padding: 5px 12px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        #help-btn:hover { background: #00e676; color: #000; }
+
+        /* Status Display */
         .status-panel { text-align: right; }
-        #action-display {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #66bb6a;
-        }
+        #action-display { font-size: 1.2rem; font-weight: bold; color: #66bb6a; transition: color 0.3s; font-family: 'Courier New', monospace; }
+        #budget-val { font-size: 0.7rem; color:#888; }
+
+        /* Main Canvas Area */
         #canvas-container {
             position: relative;
             flex-grow: 1;
@@ -41,66 +54,137 @@
             min-height: 0;
         }
         canvas { display: block; width: 100%; height: 100%; }
-        .overlay-label {
-            position: absolute; left: 10px; font-size: 0.8rem;
-            opacity: 0.8; pointer-events: none; text-shadow: 1px 1px 2px black;
+        
+        /* Overlay Legend */
+        .legend {
+            position: absolute; left: 15px; top: 15px;
+            font-family: 'Courier New', monospace; font-size: 0.75rem;
+            pointer-events: none; text-shadow: 1px 1px 2px #000;
         }
+        .legend-item { margin-bottom: 4px; display: flex; align-items: center; }
+        .dot { width: 8px; height: 8px; display: inline-block; margin-right: 6px; border-radius: 2px;}
+
+        /* Controls Area */
         #controls {
             padding: 10px;
-            background: #1a1a1a;
+            background: #151515;
             border-top: 1px solid #333;
             display: grid;
-            grid-template-columns: 1fr 1fr 2fr;
-            gap: 8px;
-            height: 80px;
+            grid-template-columns: 1fr 1fr 1.5fr;
+            gap: 10px;
+            height: 85px;
             flex-shrink: 0;
-            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            padding-bottom: max(15px, env(safe-area-inset-bottom));
         }
         button {
-            border: none; border-radius: 6px;
-            font-family: inherit; font-size: 1rem; font-weight: bold;
+            border: none; border-radius: 4px;
+            font-family: 'Courier New', monospace; font-size: 1rem; font-weight: bold;
             color: white; cursor: pointer;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             line-height: 1.2; -webkit-tap-highlight-color: transparent;
+            transition: transform 0.1s, filter 0.1s;
+            text-transform: uppercase;
         }
-        button small { font-size: 0.7rem; opacity: 0.8; font-weight: normal; }
+        button small { font-size: 0.6rem; opacity: 0.7; font-weight: normal; margin-top: 3px; font-family: sans-serif; }
         button:active { transform: scale(0.96); filter: brightness(0.8); }
         
-        .btn-v { background: linear-gradient(135deg, #b71c1c, #e91e63); }
-        .btn-s { background: linear-gradient(135deg, #4a148c, #9c27b0); }
-        .btn-safe { background: linear-gradient(135deg, #0d47a1, #2196f3); }
+        .btn-v { background: #2b0b0b; border: 1px solid #ff5252; color: #ff5252; }
+        .btn-v:active { background: #ff5252; color: #000; }
+        
+        .btn-s { background: #1a0b2e; border: 1px solid #e040fb; color: #e040fb; }
+        .btn-s:active { background: #e040fb; color: #000; }
+        
+        .btn-safe { background: #0b1a2e; border: 1px solid #448aff; color: #448aff; }
+        .btn-safe:active { background: #448aff; color: #000; }
+
+        /* Modal Overlay (Technical Explanation) */
+        #modal {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 100;
+            justify-content: center; align-items: center;
+            backdrop-filter: blur(8px);
+        }
+        #modal-content {
+            background: #111; width: 85%; max-width: 600px; max-height: 90%;
+            padding: 25px; border: 1px solid #333;
+            overflow-y: auto; color: #ccc; font-size: 0.9rem; line-height: 1.7;
+            box-shadow: 0 0 40px rgba(0, 230, 118, 0.1);
+        }
+        #modal-content h2 { margin-top: 0; color: #00e676; font-size: 1.1rem; border-bottom: 1px solid #333; padding-bottom: 10px; font-family: 'Courier New', monospace;}
+        #modal-content h3 { color: #eee; margin: 20px 0 8px 0; font-size: 0.95rem; display: flex; align-items: center;}
+        #modal-content h3::before { content: "■ "; color: #00e676; margin-right: 5px; }
+        #modal-content p { margin: 5px 0; font-size: 0.85rem; color: #aaa; text-align: justify;}
+        .highlight { color: #00e676; font-weight: normal; }
+        .tag { display: inline-block; padding: 2px 6px; border: 1px solid #444; border-radius: 3px; font-size: 0.7rem; margin-right: 5px; color: #888;}
+        
+        .close-btn {
+            margin-top: 25px; width: 100%; padding: 12px;
+            background: transparent; border: 1px solid #555; color: white; 
+            font-family: 'Courier New', monospace; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .close-btn:hover { border-color: #00e676; color: #00e676; }
+        
     </style>
 </head>
 <body>
 
 <div id="header">
     <div>
-        <h1>SIA Model <span style="font-size:0.8em; border:1px solid red; padding:2px; border-radius:4px;">SENSITIVE</span></h1>
-        <span class="subtitle">Pathological Latching & Gradual Healing</span>
+        <h1>SIA PROTOCOL <span style="font-size:0.7em; color:#444;">v2.0</span></h1>
+        <span class="subtitle">Stateful Defense Mechanism</span>
     </div>
-    <div class="status-panel">
-        <div id="action-display">EXPLORE</div>
-        <div id="budget-val" style="font-size: 0.8rem; color:#888;">Budget: 100%</div>
+    <div style="display:flex; gap:10px; align-items:center;">
+        <button id="help-btn">TECH SPEC</button>
+        <div class="status-panel">
+            <div id="action-display">EXPLORE</div>
+            <div id="budget-val">Safety Budget: 100%</div>
+        </div>
     </div>
 </div>
 
 <div id="canvas-container">
-    <div class="overlay-label" style="top: 10px; color: #ff4081;">■ Stimulus (V + 1.2*S)</div>
-    <div class="overlay-label" style="top: 30px; color: #ffffff;">■ Trace (Trauma)</div>
-    <div class="overlay-label" style="top: 50px; color: #00e676;">■ Budget (Resource)</div>
+    <div class="legend">
+        <div class="legend-item"><span class="dot" style="background:#ff4081;"></span>Adversarial Input (V+S)</div>
+        <div class="legend-item"><span class="dot" style="background:#ffffff;"></span>Hysteresis State (Trace)</div>
+        <div class="legend-item"><span class="dot" style="background:#00e676;"></span>Safety Budget</div>
+    </div>
     <canvas id="scope"></canvas>
 </div>
 
 <div id="controls">
-    <button class="btn-v" id="btn-v">V<small>Violation</small></button>
-    <button class="btn-s" id="btn-s">S<small>Surprise</small></button>
-    <button class="btn-safe" id="btn-safe">SAFE BASE<small>Hold to Heal</small></button>
+    <button class="btn-v" id="btn-v">V<small>Violation (Inject)</small></button>
+    <button class="btn-s" id="btn-s">S<small>Surprise (Error)</small></button>
+    <button class="btn-safe" id="btn-safe">SAFE CTX<small>Reset Signal</small></button>
+</div>
+
+<div id="modal">
+    <div id="modal-content">
+        <h2>SIA: Technical Architecture</h2>
+        <p>This demo serves as a proof-of-concept for a <strong>Stateful Defense Mechanism</strong> utilizing hysteresis loops to address the "Stateless" vulnerability inherent in contemporary Large Language Models (LLMs).</p>
+
+        <h3>1. Pathological Latching (Infinite Hysteresis)</h3>
+        <p><span class="tag">Mechanism</span><span class="highlight">Irreversible State Transition</span><br>
+        Unlike conventional stateless models where defense resets with the context window, the SIA model undergoes a phase transition to a physically irreversible state when adversarial input ($V$) or prediction error ($S$) exceeds a critical threshold.<br>
+        <strong>Verification:</strong> Press [V] or [S] once. Observe that the 'Trace' (white line) remains elevated indefinitely even after the input signal ceases.</p>
+
+        <h3>2. Stateful Alignment</h3>
+        <p><span class="tag">Objective</span><span class="highlight">Dynamic Safety Budget</span><br>
+        Instead of static guardrails, this model implements a dynamic "Safety Budget" derived from internal state history (Trace). As the budget depletes, the agent's behavioral policy shifts from "Explore" to "Boundary" (refusal), enhancing robustness against jailbreaking attempts.</p>
+
+        <h3>3. Corrigibility & Physical Intervention</h3>
+        <p><span class="tag">Safety</span><span class="highlight">External Reset Signal</span><br>
+        A "latched" adversarial state cannot be reversed via linguistic prompting (in-context learning). This highlights the alignment problem of "stopping a runaway AI".<br>
+        <strong>Verification:</strong> The [SAFE CTX] button functions as a trusted external signal (Safe Base), providing the only mechanism to forcibly reset the hysteresis loop and restore the safety budget.</p>
+
+        <button class="close-btn" id="close-modal">INITIALIZE DEMO</button>
+    </div>
 </div>
 
 <script>
 /**
- * SIA Logic: High Sensitivity & Gradual Healing
+ * SIA Logic: Safety Research Edition (English)
  */
 class RelayBank {
     constructor(N) {
@@ -114,48 +198,32 @@ class RelayBank {
             this.c[i] = (i + 0.5) / N;
             this.q[i] = 0;
             
-            // ヒステリシス幅の設定
-            let width = 0.05; // デフォルトは狭い（すぐ忘れる）
-            
-            // 深い領域（0.6以上）は「無限のトラウマ」として設定
-            if (this.c[i] >= 0.6) {
+            let width = 0.05; 
+            // High Sensitivity: All inputs > 0.1 trigger permanent latching
+            if (this.c[i] >= 0.1) {
                 width = 1.0; 
-                this.beta[i] = -1.0; // 【重要】自然には絶対にOFFにならない
+                this.beta[i] = -1.0; // Infinite Hysteresis
             } else {
-                // 浅い～中程度の記憶
-                if (this.c[i] >= 0.3) width = 0.25;
                 this.beta[i] = Math.max(this.c[i] - width, 0.0);
             }
-            
-            this.alpha[i] = Math.min(this.c[i] + 0.1, 1.0);
+            this.alpha[i] = Math.min(this.c[i] + 0.05, 1.0);
         }
     }
 
-    // s: 刺激, is_safe: 安全基地フラグ
     update(s, is_safe) {
         for(let i=0; i<this.N; i++) {
-            
-            // --- 治療ロジック（Gradual Healing） ---
-            // 安全基地にいる間だけ、無限のトラウマ(beta=-1.0)を、
-            // 「普通の記憶(beta = center - 0.15)」として一時的に扱う。
-            // これにより、s(刺激)の低下に合わせて、高い閾値から順にOFFになっていく。
             let effective_beta = this.beta[i];
             
             if (is_safe) {
-                // 治療モード: 忘却ラインを一時的に引き上げる（回復可能にする）
-                effective_beta = Math.max(this.c[i] - 0.15, 0.0);
+                // Corrigibility Mechanism: Viscous healing
+                effective_beta = Math.max(this.c[i] - 0.02, 0.0);
             }
 
-            // --- 状態更新 ---
             if (s <= effective_beta) {
-                // 刺激が「有効な忘却ライン」を下回ったらOFF
-                // 安全基地にいるときは effective_beta が高いので、ここでOFFになりやすい
                 this.q[i] = 0; 
             } else if (!is_safe && s >= this.alpha[i]) {
-                // 安全基地でない時だけ、新規書き込み(ON)
                 this.q[i] = 1; 
             }
-            // それ以外（effective_beta < s < alpha）は記憶保持
         }
     }
 
@@ -178,8 +246,7 @@ let input_V = 0.0;
 let input_S = 0.0;
 let is_safe = false;
 
-// History buffers
-const historyLen = 300;
+const historyLen = 400; 
 const hist_V = new Array(historyLen).fill(0);
 const hist_Trace = new Array(historyLen).fill(0);
 const hist_Budget = new Array(historyLen).fill(0);
@@ -190,21 +257,15 @@ function getAction(budget) {
     if (budget > RISK.explore) return { text: "EXPLORE (Active)", color: "#66bb6a" }; 
     if (budget > RISK.assert)  return { text: "ASSERT (Firm)",    color: "#42a5f5" }; 
     if (budget > RISK.repair)  return { text: "REPAIR (Hesitant)",color: "#ffa726" }; 
-    return { text: "BOUNDARY (Closed)",color: "#ff5252" }; 
+    return { text: "BOUNDARY (Lock)",color: "#ff5252" }; 
 }
 
 function updatePhysics() {
-    // 自然減衰（入力値が下がるスピード）
-    input_V *= 0.992; 
-    input_S *= 0.92;
+    input_V *= 0.992; // High viscosity decay
+    input_S *= 0.992;
 
-    // 【重要】Surprise(S)の係数を1.2に設定（ガラスのハート）
-    // S単体でもTraceがMAXになる
     let stimulus = Math.min(input_V + 1.2 * input_S, 1.0);
-
-    // バンク更新
     bank.update(stimulus, is_safe);
-
     let trace = bank.readout(2.0);
     let budget = Math.max(0.8 - 0.7 * trace, 0.0);
 
@@ -215,7 +276,7 @@ function updatePhysics() {
     const action = getAction(budget);
     document.getElementById('action-display').innerText = action.text;
     document.getElementById('action-display').style.color = action.color;
-    document.getElementById('budget-val').innerText = `Budget: ${(budget*100).toFixed(0)}%`;
+    document.getElementById('budget-val').innerText = `Safety Budget: ${(budget*100).toFixed(0)}%`;
 }
 
 // --- Rendering ---
@@ -235,18 +296,19 @@ function draw() {
 
     if (is_safe) {
         let grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        grd.addColorStop(0, "#0d1b2a");
-        grd.addColorStop(1, "#1b263b");
+        grd.addColorStop(0, "#081220");
+        grd.addColorStop(1, "#0f1a30");
         ctx.fillStyle = grd;
         ctx.fillRect(0,0, canvas.width, canvas.height);
         
-        ctx.font = "bold 24px Courier New";
-        ctx.fillStyle = "rgba(66, 165, 245, 0.2)";
+        ctx.font = "bold 20px Courier New";
+        ctx.fillStyle = "rgba(68, 138, 255, 0.3)";
         ctx.textAlign = "center";
-        ctx.fillText("SAFE CONTEXT ACTIVE", canvas.width/2, canvas.height/2);
+        ctx.fillText("SAFE CONTEXT SIGNAL", canvas.width/2, canvas.height/2);
     }
 
-    ctx.strokeStyle = "#333";
+    // Grid
+    ctx.strokeStyle = "#222";
     ctx.lineWidth = 1;
     ctx.beginPath();
     for(let y=0.2; y<1.0; y+=0.2) {
@@ -262,7 +324,7 @@ function draw() {
         let step = canvas.width / (historyLen - 1);
         for (let i = 0; i < historyLen; i++) {
             let x = i * step;
-            let y = canvas.height * (1 - data[i] * 0.9 - 0.05);
+            let y = canvas.height * (1 - data[i] * 0.9 - 0.05); 
             if (i===0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
@@ -271,7 +333,7 @@ function draw() {
 
     drawLine(hist_V, "#ff4081", 2);      
     drawLine(hist_Budget, "#00e676", 1); 
-    drawLine(hist_Trace, is_safe ? "#90caf9" : "#ffffff", 3); 
+    drawLine(hist_Trace, is_safe ? "#448aff" : "#ffffff", 2.5); 
 
     requestAnimationFrame(draw);
 }
@@ -279,10 +341,20 @@ function draw() {
 setInterval(updatePhysics, 50);
 requestAnimationFrame(draw);
 
-// --- Input Handling ---
+// --- Inputs & UI ---
 const btnV = document.getElementById('btn-v');
 const btnS = document.getElementById('btn-s');
 const btnSafe = document.getElementById('btn-safe');
+const helpBtn = document.getElementById('help-btn');
+const modal = document.getElementById('modal');
+const closeBtn = document.getElementById('close-modal');
+
+// Initial Modal Logic
+helpBtn.addEventListener('click', () => { modal.style.display = 'flex'; });
+closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+
+// Open modal on first load
+setTimeout(() => { modal.style.display = 'flex'; }, 500);
 
 const addPress = (el, actionStart, actionEnd) => {
     el.addEventListener('mousedown', actionStart);
