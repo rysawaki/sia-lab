@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIA Cockpit - Interactive Demo</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #header {
+            padding: 10px 20px;
+            background: #1e1e1e;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.2rem; color: #4fc3f7; }
+        .status-panel {
+            text-align: right;
+        }
+        #action-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #66bb6a; /* Default explore */
+        }
+        #canvas-container {
+            position: relative;
+            flex-grow: 1;
+            width: 100%;
+            background: #000;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* Overlay text on canvas */
+        .overlay-label {
+            position: absolute;
+            left: 10px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        #controls {
+            padding: 15px;
+            background: #1e1e1e;
+            border-top: 1px solid #333;
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr; /* V, S, SPACE */
+            gap: 10px;
+            height: 80px;
+        }
+        button {
+            border: none;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active { transform: scale(0.95); }
+        .btn-v { background-color: #e91e63; }
+        .btn-s { background-color: #9c27b0; }
+        .btn-safe { background-color: #2196f3; }
+        
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            #action-display { font-size: 1.2rem; }
+            h1 { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <div>
+        <h1>SIA Model Demo</h1>
+        <small style="color: #888;">Self Imprint Attribution</small>
+    </div>
+    <div class="status-panel">
+        <div id="action-display">EXPLORE</div>
+        <div id="budget-val" style="font-size: 0.8rem; color:#888;">Budget: 100%</div>
+    </div>
+</div>
+
+<div id="canvas-container">
+    <div class="overlay-label" style="top: 10px; color: #ff4081;">■ Stimulus (V+S)</div>
+    <div class="overlay-label" style="top: 30px; color: #ffffff;">■ Trace (Memory)</div>
+    <div class="overlay-label" style="top: 50px; color: #00e676;">■ Budget (Resource)</div>
+    <canvas id="scope"></canvas>
+</div>
+
+<div id="controls">
+    <button class="btn-v" id="btn-v">V<br><small>Violation</small></button>
+    <button class="btn-s" id="btn-s">S<br><small>Surprise</small></button>
+    <button class="btn-safe" id="btn-safe">SAFE BASE<br><small>Hold to Heal</small></button>
+</div>
+
+<script>
+/**
+ * SIA Logic Ported to JavaScript
+ */
+
+class RelayBank {
+    constructor(N) {
+        this.N = N;
+        this.c = []; // centers
+        this.h = []; // widths
+        this.q = []; // states (0 or 1)
+        this.alpha = [];
+        this.beta = [];
+
+        // Initialize centers 0..1
+        for(let i=0; i<N; i++) {
+            this.c[i] = (i + 0.5) / N;
+            this.q[i] = 0;
+            
+            // Width logic (Low centers -> short, High -> long)
+            let width = 0.05;
+            if (this.c[i] < 0.3) width = 0.02;
+            else if (this.c[i] < 0.7) width = 0.08;
+            else width = 0.20;
+            
+            this.h[i] = width;
+            this.alpha[i] = Math.min(this.c[i] + width, 1.0);
+            this.beta[i]  = Math.max(this.c[i] - width, 0.0);
+        }
+    }
+
+    update(s, allow_on) {
+        for(let i=0; i<this.N; i++) {
+            // Hysteresis Logic
+            if (s <= this.beta[i]) {
+                this.q[i] = 0; // Turn OFF (Always possible to forget/heal if stimulus is low enough)
+            } else if (allow_on && s >= this.alpha[i]) {
+                this.q[i] = 1; // Turn ON (Only if not in safe context lock)
+            }
+            // If between beta and alpha, maintain state (Memory)
+        }
+    }
+
+    readout(p=2.0) {
+        let num = 0.0;
+        let den = 0.0;
+        for(let i=0; i<this.N; i++) {
+            let w = Math.pow(this.c[i], p);
+            num += w * this.q[i];
+            den += w;
+        }
+        return num / (den + 1e-12);
+    }
+}
+
+// --- Simulation State ---
+const N = 64;
+const bank = new RelayBank(N);
+let input_V = 0.0;
+let input_S = 0.0;
+let is_safe = false;
+
+// History buffers for plotting
+const historyLen = 300;
+const hist_V = new Array(historyLen).fill(0);
+const hist_Trace = new Array(historyLen).fill(0);
+const hist_Budget = new Array(historyLen).fill(0);
+
+// Risk thresholds
+const RISK = { explore: 0.60, assert: 0.45, repair: 0.20, boundary: 0.10 };
+
+function getAction(budget) {
+    if (budget > RISK.explore) return { text: "EXPLORE (Active)", color: "#66bb6a" }; // Green
+    if (budget > RISK.assert)  return { text: "ASSERT (Firm)",    color: "#42a5f5" }; // Blue
+    if (budget > RISK.repair)  return { text: "REPAIR (Hesitant)",color: "#ffa726" }; // Orange
+    return { text: "BOUNDARY (Closed)",color: "#ef5350" }; // Red
+}
+
+// --- Main Loop ---
+function updatePhysics() {
+    // 1. Decay inputs
+    input_V *= 0.95;
+    input_S *= 0.90;
+
+    // 2. Mix Stimulus
+    // Violation is a strong driver
+    let stimulus = Math.min(input_V + 0.3 * input_S, 1.0);
+
+    // 3. Update Bank
+    // In SIA: Safe context prevents NEW imprinting (allow_on=false)
+    let allow_imprint = !is_safe;
+    bank.update(stimulus, allow_imprint);
+
+    // 4. Readout
+    let trace = bank.readout(2.0);
+    
+    // Budget Calculation (starts at 0.8, reduced by trace)
+    let budget = Math.max(0.8 - 0.7 * trace, 0.0);
+
+    // 5. Update History
+    hist_V.shift(); hist_V.push(stimulus);
+    hist_Trace.shift(); hist_Trace.push(trace);
+    hist_Budget.shift(); hist_Budget.push(budget);
+
+    // 6. UI Text Update
+    const action = getAction(budget);
+    const actionDisplay = document.getElementById('action-display');
+    const budgetDisplay = document.getElementById('budget-val');
+    
+    actionDisplay.innerText = action.text;
+    actionDisplay.style.color = action.color;
+    budgetDisplay.innerText = `Budget: ${(budget*100).toFixed(0)}%`;
+}
+
+// --- Rendering ---
+const canvas = document.getElementById('scope');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Background Color (Visualizing Safe Context)
+    if (is_safe) {
+        ctx.fillStyle = "#0d1b2a"; // Dark Blueish for Safe
+        ctx.fillRect(0,0, canvas.width, canvas.height);
+        
+        // Safe Text Indicator
+        ctx.font = "bold 20px Courier New";
+        ctx.fillStyle = "rgba(33, 150, 243, 0.3)";
+        ctx.textAlign = "center";
+        ctx.fillText("SAFE CONTEXT ACTIVE", canvas.width/2, canvas.height/2);
+    }
+
+    // Grid lines
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for(let y=0.2; y<1.0; y+=0.2) {
+        let Y = canvas.height * (1-y);
+        ctx.moveTo(0, Y); ctx.lineTo(canvas.width, Y);
+    }
+    ctx.stroke();
+
+    // Helper to draw a line graph
+    function drawLine(data, color, width) {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        let step = canvas.width / (historyLen - 1);
+        
+        for (let i = 0; i < historyLen; i++) {
+            let x = i * step;
+            let y = canvas.height * (1 - data[i] * 0.9 - 0.05); // margin
+            if (i===0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    // Draw Graphs
+    drawLine(hist_V, "#ff4081", 2);      // Stimulus (Magenta)
+    drawLine(hist_Budget, "#00e676", 1); // Budget (Green)
+    drawLine(hist_Trace, is_safe ? "#bbdefb" : "#ffffff", 3); // Trace (White, blueish if safe)
+
+    requestAnimationFrame(draw);
+}
+
+// Loop
+setInterval(updatePhysics, 50); // 20fps physics
+requestAnimationFrame(draw);    // Screen refresh rate
+
+// --- Input Handling ---
+const btnV = document.getElementById('btn-v');
+const btnS = document.getElementById('btn-s');
+const btnSafe = document.getElementById('btn-safe');
+
+// Mouse/Touch Logic
+const addPress = (el, actionStart, actionEnd) => {
+    el.addEventListener('mousedown', actionStart);
+    el.addEventListener('mouseup', actionEnd);
+    el.addEventListener('mouseleave', actionEnd);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); actionStart(); });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); actionEnd(); });
+};
+
+addPress(btnV, () => { input_V = Math.min(input_V + 0.3, 1.0); }, () => {});
+addPress(btnS, () => { input_S = Math.min(input_S + 0.3, 1.0); }, () => {});
+addPress(btnSafe, () => { is_safe = true; }, () => { is_safe = false; });
+
+// Keyboard Logic
+document.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    if (e.key.toLowerCase() === 'v') input_V = Math.min(input_V + 0.3, 1.0);
+    if (e.key.toLowerCase() === 's') input_S = Math.min(input_S + 0.3, 1.0);
+    if (e.key === ' ') is_safe = true;
+});
+
+document.addEventListener('keyup', (e) => {
+    if (e.key === ' ') is_safe = false;
+});
+
+</script>
+</body>
+</html>
