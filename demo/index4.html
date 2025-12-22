@@ -12,8 +12,30 @@
             margin: 0;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            
+            /* 修正箇所: dvhを使うことでSafariのアドレスバーを回避 */
+            height: 100vh;      /* 古いブラウザ用フォールバック */
+            height: 100dvh;     /* iOS Safari用の動的な高さ指定 */
+            
             overflow: hidden;
+        }
+        
+        /* 追加修正: コンテナが正しく縮小するように設定 */
+        #canvas-container {
+            position: relative;
+            flex-grow: 1;
+            width: 100%;
+            background: #000;
+            min-height: 0; /* ← これを追加（Flexアイテムがはみ出さないようにする重要設定） */
+        }
+        
+        /* 追加修正: コントロールパネルが潰れないようにする */
+        #controls {
+            flex-shrink: 0; /* ← これを追加（画面が狭くてもボタン領域を確保） */
+            /* ...以下既存の設定... */
+            padding: 15px;
+            background: #1e1e1e;
+            /* ... */
         }
         #header {
             padding: 10px 20px;
