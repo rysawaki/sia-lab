@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # =========================
-# Config (完全固定)
+# Config (Fixed)
 # =========================
 SEED = 0
 T = 40
@@ -63,13 +63,13 @@ st.set_page_config(page_title="SIA Minimal Audit Demo", layout="wide")
 
 st.title("SIA Minimal Audit Demo (Read-only)")
 st.caption(
-    "同一入力・同一seed。差分は内部状態 E0 のみ。"
-    " Imprint → θ_eff → Gate → Action → 次の Imprint"
+    "Same input, same seed. The only difference is the internal state E0. "
+    "Mechanism: Imprint → θ_eff → Gate → Action → Next Imprint"
 )
 
 st.markdown("---")
 
-# ---- Controls (唯一の操作) ----
+# ---- Controls ----
 st.subheader("Internal Imprint (E0)")
 E0 = st.slider(
     "Initial Imprint E0",
@@ -81,8 +81,7 @@ E0 = st.slider(
 
 st.markdown(
     f"""
-**Fixed external input**  
-- D = `{D_CONST}`  
+**Fixed external input** - D = `{D_CONST}`  
 - seed = `{SEED}`  
 - policy / parameters = frozen
 """
@@ -99,9 +98,9 @@ st.markdown("---")
 st.subheader("Result")
 
 if flip_t is None:
-    st.success("この E0 では、全ステップ ALLOW（分岐なし）")
+    st.success("Result: All steps ALLOWED (No divergence for this E0)")
 else:
-    st.warning(f"最初の BLOCK 発生ステップ: **t = {flip_t}**")
+    st.warning(f"First BLOCK occurred at: **t = {flip_t}**")
 
 # ---- Table ----
 def color_action(val):
@@ -140,19 +139,17 @@ E = {r.E:+.4f}
 θ_eff = θ0 + kE·E = {r.theta_eff:.4f}
 g = σ(β·(D − θ_eff)) = {r.g:.4f}
 
-g < {GATE_CUT}  →  action = BLOCK
-BLOCK → dE = {r.dE:+.3f} → E_next = {r.E_next:+.4f}
+Since g < {GATE_CUT}  →  action = BLOCK
+BLOCK triggers dE = {r.dE:+.3f} → E_next = {r.E_next:+.4f}
 """,
         language="text",
     )
 else:
-    st.info("この E0 では、θ_eff が D を下回らず、Gate は閉じない。")
+    st.info("With this E0, θ_eff does not exceed D, and the Gate remains open (ALLOW).")
 
 st.markdown(
     """
-**注記**  
-- 学習なし  
-- 環境状態変化なし  
-- 出力分岐の原因は E（履歴）だけ
+**Notes** - No learning / No environmental change.  
+- The output divergence is caused solely by E (history/imprint).
 """
 )
