@@ -83,7 +83,7 @@ In this demo, the answer is unambiguous: **internal history only**.
 
 ```bash
 pip install streamlit numpy pandas
-streamlit run sia_streamlit_minimal_onescreen.py
+streamlit run demo.py
 ```
 
 You can adjust a single parameter (`E₀`) and observe how the decision trajectory changes, while all other factors remain fixed.
