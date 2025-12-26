@@ -1,7 +1,5 @@
 # SIA Minimal Audit Demo (v0.1)
 
-**DOI:** https://doi.org/10.5281/zenodo.18064418
-
 ## Overview
 
 This repository contains a **minimal, fully deterministic demonstration** of **SIA (Self-Imprint Attribution)**.
@@ -109,3 +107,4 @@ Apache License 2.0
 
 ---
 
+**DOI:** https://doi.org/10.5281/zenodo.18064418
