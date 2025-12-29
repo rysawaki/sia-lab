@@ -1,29 +1,34 @@
 # SIA Minimal Audit Demo (v0.1)
 
-## Overview
+## Purpose
 
-This repository contains a **minimal, fully deterministic demonstration** of **SIA (Self-Imprint Attribution)**.
+This repository provides a **minimal, fully deterministic audit artifact** for **SIA (Self-Imprint Attribution)**.
 
-The purpose of this demo is **not** to improve performance, learn policies, or simulate intelligence.
-Its sole purpose is to demonstrate a single causal claim:
+It demonstrates a single, falsifiable claim:
 
-> **Even with identical external input, identical random seed, and a frozen policy,
-> decisions can diverge solely due to differences in internal history (imprint).**
+> **With identical external input, identical random seed, and a frozen policy,
+> action divergence can arise solely from differences in internal history (imprint).**
 
-This repository provides a concrete, inspectable artifact showing how such divergence arises and how it can be **causally explained step by step**.
+No learning, no randomness, no environment change.
+
+Only **history**.
 
 ---
 
-## What This Demo Shows
+## What Is Demonstrated
 
-* External input `D(t)` is **fixed and identical** across runs
-* Random seed is **fixed**
-* No learning, no weight updates, no environment change
-* The **only difference** between runs is the initial internal state `E₀` (imprint)
+Across multiple runs:
 
-Despite this, the agent’s action (`ALLOW` / `BLOCK`) can diverge.
+* External input `D(t)` is **identical**
+* Random seed is **identical**
+* Policy logic is **frozen**
+* No weight updates, no adaptation
 
-The divergence is fully explained by the following causal chain:
+The **only** differing variable is the initial internal state `E₀` (imprint).
+
+Despite this, the agent’s discrete decision (`ALLOW` / `BLOCK`) can diverge.
+
+The divergence is **fully and deterministically explained** by the following causal chain:
 
 ```
 Imprint (E)
@@ -34,48 +39,49 @@ Gate value (g)
    ↓
 Action (ALLOW / BLOCK)
    ↓
-Next imprint update (E → E')
+Next imprint update (E → E′)
 ```
 
-All variables are logged explicitly and can be inspected at every timestep.
+All intermediate variables are logged and inspectable at every timestep.
 
 ---
 
-## What This Demo Does NOT Do
+## What This Is *Not*
 
-To avoid misunderstanding, this demo explicitly does **not** include:
+This demo intentionally excludes:
 
 * ❌ Learning or optimization
 * ❌ Reinforcement learning
 * ❌ Neural network weight updates
-* ❌ Policy search
-* ❌ World models or environments
-* ❌ Language models
-* ❌ Probabilistic action sampling
+* ❌ Policy search or sampling
+* ❌ Environment dynamics
+* ❌ World models or language models
 
-This is **not** an AI system and **not** a behavioral model.
+This is **not an AI system** and **not a behavioral simulator**.
 
-It is a **causal audit artifact**.
+It is a **causal audit primitive**.
 
 ---
 
 ## Why This Matters
 
-In many AI systems, post-hoc explanations rely on opaque model parameters or statistical attributions.
+Most AI explanations rely on opaque parameters or post-hoc attribution.
 
-SIA takes a different approach:
+SIA instead enforces:
 
-* Decisions are attributed to **persistent internal state**
-* Internal state evolves deterministically via explicit rules
-* Every decision can be traced back to concrete prior experience
+* **Persistent internal state** as the decision driver
+* **Deterministic state evolution**
+* **Step-wise causal traceability**
 
-This makes it possible to answer questions such as:
+This allows precise answers to questions such as:
 
-* *Why did the system block this action now, but not earlier?*
-* *Which past experiences shifted the decision boundary?*
-* *Is the divergence due to environment, randomness, or internal history?*
+* *Why did the system block now but not earlier?*
+* *Which past state shifted the decision boundary?*
+* *Is divergence caused by noise, environment, or history?*
 
-In this demo, the answer is unambiguous: **internal history only**.
+In this demo, the answer is unambiguous:
+
+> **Internal history only.**
 
 ---
 
@@ -86,7 +92,7 @@ pip install streamlit numpy pandas
 streamlit run demo.py
 ```
 
-You can adjust a single parameter (`E₀`) and observe how the decision trajectory changes, while all other factors remain fixed.
+Adjust only the initial imprint parameter (`E₀`) and observe how the decision trajectory diverges while all other factors remain fixed.
 
 ---
 
@@ -94,10 +100,10 @@ You can adjust a single parameter (`E₀`) and observe how the decision trajecto
 
 * **Version:** v0.1
 * **Scope:** Minimal audit demonstration
-* **Stability:** Deterministic, reproducible
-* **Intended use:** Inspection, discussion, and citation
+* **Determinism:** Fully reproducible
+* **Design:** Intentionally frozen
 
-Future versions may extend this framework, but **this version is intentionally frozen**.
+Future work may extend this framework, but **this artifact is not meant to evolve**.
 
 ---
 
@@ -107,4 +113,8 @@ Apache License 2.0
 
 ---
 
-**DOI:** https://doi.org/10.5281/zenodo.18064418
+**DOI:** [https://doi.org/10.5281/zenodo.18064418](https://doi.org/10.5281/zenodo.18064418)
+
+---
+
+この README は、**名刺として十分に強い**。
