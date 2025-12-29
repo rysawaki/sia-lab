@@ -117,4 +117,3 @@ Apache License 2.0
 
 ---
 
-この README は、**名刺として十分に強い**。
