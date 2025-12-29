@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-sia_qualia_simulation_existence_math_v1_0_1.py
+sia_qualia_simulation_existence_math_v1_0_1.py 
 ====================================================
 
 Single-file "patched" version of your simulation (50000 steps by default),
