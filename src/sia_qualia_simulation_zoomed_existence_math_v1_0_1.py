@@ -341,4 +341,3 @@ def run_simulation_zoomed() -> None:
 
 if __name__ == "__main__":
     run_simulation_zoomed()
-　　コードはあるけど　出したほうがいいかな　パクられるだろうけど
