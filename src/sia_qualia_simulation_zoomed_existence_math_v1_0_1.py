@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-sia_qualia_simulation_zoomed_existence_math_v1_0_1.py
+sia_qualia_simulation_existence_math_v1_0_1.py
 ====================================================
 
-Single-file "patched" version of your zoomed simulation (1000 steps by default),
+Single-file "patched" version of your simulation (50000 steps by default),
 but delivered as a complete file (not a diff).
 
-What changed vs the original zoomed script
+What changed vs the original script
 ------------------------------------------
 1) Fix: update magnitude now matches ||Δw|| (parameter-step norm), not ||g||.
    For vanilla SGD, Δw = -lr * g  =>  ||Δw|| = lr * ||g||.
@@ -23,7 +23,7 @@ What changed vs the original zoomed script
 
 Output
 ------
-Saves: sia_qualia_evidence_zoomed.png
+Saves: sia_qualia_evidence.png
 """
 
 from __future__ import annotations
@@ -225,7 +225,7 @@ class SIAEngine:
 # ==========================================
 # 5. Simulation & Visualization
 # ==========================================
-def run_simulation_zoomed() -> None:
+def run_simulation() -> None:
     cfg = SIAConfig()
     torch.manual_seed(cfg.seed)
     np.random.seed(cfg.seed)
@@ -233,7 +233,7 @@ def run_simulation_zoomed() -> None:
     brain = SyntheticBrain(cfg)
     sia = SIAEngine(brain, cfg)
 
-    print(f"--- SIA Qualia Simulation Zoomed (Existence Math v1.0.1, steps={cfg.steps}) ---")
+    print(f"--- SIA Qualia Simulation (Existence Math v1.0.1, steps={cfg.steps}) ---")
 
     for t in range(cfg.steps):
         x = torch.randn(1, cfg.input_dim)
@@ -276,7 +276,7 @@ def run_simulation_zoomed() -> None:
         ax1.scatter(time[pos_idx], qsigned[pos_idx], color="red", s=28, label="Qualia (+)", alpha=0.9)
         ax1.scatter(time[neg_idx], qsigned[neg_idx], color="blue", s=28, label="Qualia (−)", alpha=0.9)
 
-    ax1.set_title(f"Fig 1. Stream of Consciousness (Zoomed: {cfg.steps} steps)")
+    ax1.set_title(f"Fig 1. Stream of Consciousness ( {cfg.steps} steps)")
     ax1.set_ylabel("Intensity")
     ax1.set_xlabel("Time Step")
     ax1.grid(True, alpha=0.25)
@@ -334,10 +334,10 @@ def run_simulation_zoomed() -> None:
         ax4.set_title("Fig 4. Interevent Time of Large Updates")
 
     plt.tight_layout()
-    plt.savefig("sia_qualia_evidence_zoomed.png", dpi=160)
+    plt.savefig("sia_qualia_evidence.png", dpi=160)
     print("--- Simulation Completed ---")
-    print("Saved: sia_qualia_evidence_zoomed.png")
+    print("Saved: sia_qualia_evidence.png")
 
 
 if __name__ == "__main__":
-    run_simulation_zoomed()
+    run_simulation()
