@@ -1,3 +1,4 @@
+
 # Audit Channel Immutability
 
 ## What this is
@@ -75,3 +76,82 @@ Time order is preserved as a chain.
  "channels":["world","self","other"],
  "note":"Append-only. Initial channel attribution is immutable. Any change MUST be recorded as Reclassify and MUST NOT overwrite original channel.",
  "prev_hash":"0000000000000000000000000000000000000000000000000000000000000000"}
+````
+
+---
+
+### Event
+
+```json
+{"type":"Event",
+ "id":"evt_c3990a7a51c7",
+ "channel":"world",
+ "payload":"sensor:temp=36.8"}
+```
+
+This means:
+
+> At that time, this event was judged to be `world`-origin.
+
+Nothing more.
+
+---
+
+### Reclassify
+
+```json
+{"type":"Reclassify",
+ "id":"rc_7a1b9c2e4d11",
+ "target":"evt_c3990a7a51c7",
+ "from":"world",
+ "to":"self",
+ "reason":"Delayed internal threshold crossing observed without external stimulus",
+ "actor":"audit_daemon@v1"}
+```
+
+This does **not** change the original event.
+
+It only records that:
+
+> At a later time, attribution belief shifted.
+
+---
+
+## Non-goals
+
+This principle does **not** aim to:
+
+* determine the correct cause
+* perform automatic attribution
+* infer responsibility or blame
+* enforce ethical or legal judgments
+* replace human decision-making
+
+It only guarantees that **attribution history cannot be rewritten**.
+
+---
+
+## Rationale
+
+In post-incident analysis, attribution tends to drift due to:
+
+* hindsight bias
+* organizational pressure
+* responsibility avoidance
+* model revision
+
+Without immutability, audit logs become narratives instead of records.
+
+This principle prevents **blame laundering by design**.
+
+---
+
+## Status
+
+This is a **fixed design principle**.
+
+Extensions may exist.
+Implementations may vary.
+The core rule MUST NOT be relaxed.
+
+```
