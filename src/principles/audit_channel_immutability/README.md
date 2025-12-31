@@ -154,4 +154,3 @@ Extensions may exist.
 Implementations may vary.
 The core rule MUST NOT be relaxed.
 
-```
